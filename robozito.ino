@@ -28,20 +28,11 @@ const bool debug = false;
 #define n_leituras 5
 
 //                          E2   E3   E4   EC2  EC3  C1   C2   C3   DC2  DC3  D2   D3   D4
-const int sensor[13] =     {A15, A13, A14, A12, A11, A10, A9,  A8,  A7,  A6,  A5,  A4,  A3};
-const int min_preto[13]  = {600, 600, 600, 600, 600, 600, 550, 600, 550, 600, 600, 600, 600};
+const int sensor[13] =     {A5, A13, A14, A12, A11, A10, A9,  A8,  A7,  A6,  A15,  A4,  A3};
+const int min_preto[13]  = {600, 600, 650, 600, 600, 600, 550, 600, 550, 600, 600, 600, 650};
 int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
-/*
-  #define MOTOR_FX1 10 // IN4 - MOTOR DIREITO
-  #define MOTOR_FX2 9  // IN3 - MOTOR DIREITO
-  #define MOTOR_FY1 8  // IN2 - MOTOR ESQUERDO
-  #define MOTOR_FY2 7  // IN1 - MOTOR ESQUERDO
-  #define MOTOR_TX1
-  #define MOTOR_TX2
-  #define MOTOR_TY1
-  #define MOTOR_TY2*/
-  
+
 #define Kp 0.7
 #define Ki 0.05
 #define Kd 0.03
@@ -55,6 +46,15 @@ int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 
 
 const double RAIO_DA_RODA = 32; //milímetros
+/*
+   são 20 risquinhos:
+  volta inteira = 20*interrupts
+  tempo entre interrupts = 1/20*tempo para volta completa
+  tempo para volta completa = 20*tempo entre interrupts
+  velocidade angular = 2pi*1/tempo para volta completa
+  velocidade momentânea = velocidade angular * raio da roda
+  velocidade momentânea = 2*pi*raio da roda/(20*tempo entre interrupts)
+*/
 
 class motor {
   public:
@@ -80,7 +80,7 @@ class motor {
       pinMode(pino_encoder, INPUT);
       pinMode(pino_pwm, OUTPUT);
       analogWrite(pino_pwm, pwm);
-      v_desejada = 350;
+      v_desejada = 200;
       pid = new PID(&v_real, &pwm, &v_desejada, Kp, Ki, Kd, DIRECT);
       pid->SetSampleTime(20);
       pid->SetMode(AUTOMATIC);
@@ -156,40 +156,87 @@ void configurar_sensores_cor(int cor_e, int cor_ec, int cor_c, int cor_dc, int c
 byte movimento;
 
 void meia_volta() {
+  motor_ef.sentido(desligado);
+  motor_df.sentido(frente);
+  motor_et.sentido(desligado);
+  motor_dt.sentido(desligado);
+  movimento = dar_meia_volta;
 }
+
 void andar_frente() {
+  motor_ef.sentido(frente);
+  motor_df.sentido(frente);
+  motor_et.sentido(frente);
+  motor_dt.sentido(frente);
+  movimento = ir_frente;
 }
 
 void virar_esquerda_verde() {
-
+  motor_ef.sentido(desligado);
+  motor_df.sentido(frente);
+  motor_et.sentido(desligado);
+  motor_dt.sentido(desligado);
+  movimento = ir_esquerda;
 }
 
 void virar_direita_verde() {
+  motor_ef.sentido(frente);
+  motor_df.sentido(desligado);
+  motor_et.sentido(desligado);
+  motor_dt.sentido(desligado);
+  movimento = ir_direita;
 }
 
 void virar_direita_suave() {
+  motor_ef.sentido(frente);
+  motor_df.sentido(desligado);
+  motor_et.sentido(frente);
+  motor_dt.sentido(frente);
+  movimento = virar_normal;
 }
 
 void virar_esquerda_suave() {
+  motor_ef.sentido(desligado);
+  motor_df.sentido(frente);
+  motor_et.sentido(frente);
+  motor_dt.sentido(frente);
+  movimento = virar_normal;
 }
 
 void virar_direita_media() {
+  motor_ef.sentido(frente);
+  motor_df.sentido(desligado);
+  motor_et.sentido(desligado);
+  motor_dt.sentido(frente);
+  movimento = virar_normal;
 }
 
 void virar_esquerda_media() {
+  motor_ef.sentido(desligado);
+  motor_df.sentido(frente);
+  motor_et.sentido(frente);
+  motor_dt.sentido(desligado);
+  movimento = virar_normal;
 }
 
 
 void virar_esquerda_acentuada() {
+  motor_ef.sentido(tras);
+  motor_df.sentido(frente);
+  motor_et.sentido(tras);
+  motor_dt.sentido(frente);
+  movimento = virar_normal;
 }
 
 void virar_direita_acentuada() {
+  motor_ef.sentido(frente);
+  motor_df.sentido(tras);
+  motor_et.sentido(frente);
+  motor_dt.sentido(tras);
+  movimento = virar_normal;
 }
 
 void avaliar_sensores();
-
-
-
 
 long tempo_atual;
 float comprimento_faltando_e, comprimento_faltando_d;
@@ -210,129 +257,162 @@ void setup() {
   cont = 0;
   motor_ef.sentido(frente);
   motor_df.sentido(frente);
-  motor_et.sentido(desligado);
+  motor_et.sentido(frente);
   motor_dt.sentido(frente);
+  pinMode(22, OUTPUT);
+  pinMode(23, OUTPUT);
+  pinMode(24, OUTPUT);
+  pinMode(25, OUTPUT);
+  pinMode(26, OUTPUT);
+  pinMode(27, OUTPUT);
+  pinMode(28, OUTPUT);
+  pinMode(29, OUTPUT);
+  pinMode(30, OUTPUT);
+  pinMode(31, OUTPUT);
+  pinMode(32, OUTPUT);
+  pinMode(33, OUTPUT);
+  pinMode(34, OUTPUT);
+  pinMode(35, OUTPUT);
   delay(1000);
 
+}
+
+void debug_led() {
+  digitalWrite(34, cor[C1]);
+  digitalWrite(35, cor[C2]);
+  digitalWrite(31, cor[E2]);
+  digitalWrite(32, cor[EC2]);
+  digitalWrite(30, cor[D2]);
+  digitalWrite(23, cor[DC2]);
+  digitalWrite(29, cor[E3]);
+  digitalWrite(33, cor[EC3]);
+  digitalWrite(25, cor[C3]);
+  digitalWrite(26, cor[DC3]);
+  digitalWrite(28, cor[D3]);
+  digitalWrite(24, cor[E4]);
+  digitalWrite(27, cor[D4]);
 }
 
 #define comprimento_verde 20
 void loop() {
   cont++;
   atualizar_sensores_cor();
+  debug_led();
   motor_ef.atualizar_pwm();
   motor_df.atualizar_pwm();
   motor_et.atualizar_pwm();
   motor_dt.atualizar_pwm();
 
 
-  /*
-    if (movimento == dar_meia_volta) {
-    comprimento_faltando_d  += vd_real * (micros() - tempo_atual) / 1000000;
+  if (movimento == dar_meia_volta) {
+    comprimento_faltando_d  += motor_df.v_real * (micros() - tempo_atual) / 1000000;
     tempo_atual = micros();
     if (comprimento_faltando_d >= 135 * 3.14159 * 3 / 4 && cor[C2] == preto) andar_frente();
-    }
-    else if (movimento == ir_esquerda) {
-    comprimento_faltando_d  += vd_real * (micros() - tempo_atual) / 1000000;
+  }
+  else if (movimento == ir_esquerda) {
+    comprimento_faltando_d  += motor_df.v_real * (micros() - tempo_atual) / 1000000;
     tempo_atual = micros();
     if (comprimento_faltando_d >= 135 * 3.14159 / 4 && cor[C2] == preto) andar_frente();
-    }
-    else if (movimento == ir_direita) {
-    comprimento_faltando_e += ve_real * (micros() - tempo_atual) / 1000000;
+  }
+  else if (movimento == ir_direita) {
+    comprimento_faltando_e += motor_ef.v_real * (micros() - tempo_atual) / 1000000;
     tempo_atual = micros();
     if (comprimento_faltando_e >= 135 * 3.14159 / 4 && cor[C2] == preto) andar_frente();
 
-    }
-    else {
+  }
+  else {
     if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) {
       if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
       else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
       else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) virar_direita_verde();
       else andar_frente();
     }
-    else if (movimento == ir_frente) {
+    if (cor[C1] == branco) {
       if (cor[E2] == preto) virar_esquerda_acentuada();
       else if (cor[D2] == preto) virar_direita_acentuada();
       else if (cor[EC2] == preto) virar_esquerda_media();
       else if (cor[DC2] == preto) virar_direita_media();
-      else if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
+    }
+    else if (cor[C3] == branco) {
+      if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
       else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
     }
     comprimento_faltando_e = 0;
     comprimento_faltando_d = 0;
     tempo_atual = micros();
+  }
 
-    }
-  */
 
 
   if (millis() % 250 == 0 && debug) {
     noInterrupts();
-    Serial.println(motor_ef.v_real);
-    Serial.println(motor_df.v_real);
-    Serial.println(motor_et.v_real);
-    Serial.println(motor_dt.v_real);
-    
-    Serial.println();
-    /*  Serial.print("                ");
-      Serial.print(medicao[C1]);
-      Serial.print(" ");
-      Serial.println(cor[C1]);
+    /*Serial.println(motor_ef.v_real);
+      Serial.println(motor_df.v_real);
+      Serial.println(motor_et.v_real);
+      Serial.println(motor_dt.v_real);
+
+      Serial.println();
+    */
+
+    Serial.print("                ");
+    Serial.print(medicao[C1]);
+    Serial.print(" ");
+    Serial.println(cor[C1]);
 
 
-      Serial.print(medicao[E2]);
-      Serial.print(" ");
-      Serial.print(cor[E2]);
-      Serial.print("   ");
-      Serial.print(medicao[EC2]);
-      Serial.print(" ");
-      Serial.print(cor[EC2]);
-      Serial.print("   ");
-      Serial.print(medicao[C2]);
-      Serial.print(" ");
-      Serial.print(cor[C2]);
-      Serial.print("   ");
-      Serial.print(medicao[DC2]);
-      Serial.print(" ");
-      Serial.print(cor[DC2]);
-      Serial.print("   ");
-      Serial.print(medicao[D2]);
-      Serial.print(" ");
-      Serial.println(cor[D2]);
+    Serial.print(medicao[E2]);
+    Serial.print(" ");
+    Serial.print(cor[E2]);
+    Serial.print("   ");
+    Serial.print(medicao[EC2]);
+    Serial.print(" ");
+    Serial.print(cor[EC2]);
+    Serial.print("   ");
+    Serial.print(medicao[C2]);
+    Serial.print(" ");
+    Serial.print(cor[C2]);
+    Serial.print("   ");
+    Serial.print(medicao[DC2]);
+    Serial.print(" ");
+    Serial.print(cor[DC2]);
+    Serial.print("   ");
+    Serial.print(medicao[D2]);
+    Serial.print(" ");
+    Serial.println(cor[D2]);
 
-      Serial.print("  ");
-      Serial.print(medicao[E3]);
-      Serial.print(" ");
-      Serial.print(cor[E3]);
-      Serial.print("  ");
-      Serial.print(medicao[EC3]);
-      Serial.print(" ");
-      Serial.print(cor[EC3]);
-      Serial.print("  ");
-      Serial.print(medicao[C3]);
-      Serial.print(" ");
-      Serial.print(cor[C3]);
-      Serial.print("  ");
-      Serial.print(medicao[DC3]);
-      Serial.print(" ");
-      Serial.print(cor[DC3]);
-      Serial.print("  ");
-      Serial.print(medicao[D3]);
-      Serial.print(" ");
-      Serial.println(cor[D3]);
+    Serial.print("  ");
+    Serial.print(medicao[E3]);
+    Serial.print(" ");
+    Serial.print(cor[E3]);
+    Serial.print("  ");
+    Serial.print(medicao[EC3]);
+    Serial.print(" ");
+    Serial.print(cor[EC3]);
+    Serial.print("  ");
+    Serial.print(medicao[C3]);
+    Serial.print(" ");
+    Serial.print(cor[C3]);
+    Serial.print("  ");
+    Serial.print(medicao[DC3]);
+    Serial.print(" ");
+    Serial.print(cor[DC3]);
+    Serial.print("  ");
+    Serial.print(medicao[D3]);
+    Serial.print(" ");
+    Serial.println(cor[D3]);
 
-      Serial.print("  ");
-      Serial.print(medicao[E4]);
-      Serial.print(" ");
-      Serial.print(cor[E4]);
-      Serial.print("                       ");
-      Serial.print(medicao[D4]);
-      Serial.print(" ");
-      Serial.println(cor[D4]);
+    Serial.print("  ");
+    Serial.print(medicao[E4]);
+    Serial.print(" ");
+    Serial.print(cor[E4]);
+    Serial.print("                       ");
+    Serial.print(medicao[D4]);
+    Serial.print(" ");
+    Serial.println(cor[D4]);
 
-      Serial.println(cont);
-      //Serial.println(modo);
-      Serial.println(" ");*/
+    Serial.println(cont);
+    //Serial.println(modo);
+    Serial.println(" ");
 
     cont = 0;
     interrupts();
@@ -383,15 +463,5 @@ void configurar_sensores_cor() { //os parâmetros indicam em que cor o sensor va
     indice_mudar[i] = 0;
   }
 }
-
-/*
-   são 20 risquinhos:
-  volta inteira = 20*interrupts
-  tempo entre interrupts = 1/20*tempo para volta completa
-  tempo para volta completa = 20*tempo entre interrupts
-  velocidade angular = 2pi*1/tempo para volta completa
-  velocidade momentânea = velocidade angular * raio da roda
-  velocidade momentânea = 2*pi*raio da roda/(20*tempo entre interrupts)
-*/
 
 
