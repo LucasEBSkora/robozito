@@ -41,26 +41,7 @@ int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
   #define MOTOR_TX2
   #define MOTOR_TY1
   #define MOTOR_TY2*/
-
-#define MOTOR_F_IN4 50 // IN4 - MOTOR esquerdo - frente = LOW
-#define MOTOR_F_IN3 52  // IN3 - MOTOR esquerdo - frente = HIGH
-#define MOTOR_F_IN2 46 // IN2 - MOTOR Direito           LOW
-#define MOTOR_F_IN1 48  // IN1 - MOTOR direito - frente HIGH
-#define MOTOR_T_IN4 44
-#define MOTOR_T_IN3 42
-#define MOTOR_T_IN2 40
-#define MOTOR_T_IN1 38
-
-#define PINO_F_INT0 2 // 
-#define PINO_F_INT1 3 // comparadores dos encoders
-#define PINO_T_INT0 18 // pinos onde estão ligados os 
-#define PINO_T_INT1 19 // comparadores dos encoders
-
-#define PWM_F1 11   //pino ENB do driver ponte H (MOTOR DIREITO)
-#define PWM_F2 10    //pino ENA (MOTOR ESQUERDO)
-#define PWM_T1 8    // DIREITO
-#define PWM_T2 9     // ESQUERDO
-
+  
 #define Kp 0.7
 #define Ki 0.05
 #define Kd 0.03
@@ -93,13 +74,13 @@ class motor {
       pino_tras = ptras;
       pino_encoder = encoder;
       pino_pwm = PWM;
-      pwm = 170;
+      pwm = 255;
       pinMode(pino_frente, OUTPUT);
       pinMode(pino_tras, OUTPUT);
       pinMode(pino_encoder, INPUT);
       pinMode(pino_pwm, OUTPUT);
       analogWrite(pino_pwm, pwm);
-      v_desejada = 250;
+      v_desejada = 350;
       pid = new PID(&v_real, &pwm, &v_desejada, Kp, Ki, Kd, DIRECT);
       pid->SetSampleTime(20);
       pid->SetMode(AUTOMATIC);
@@ -122,8 +103,28 @@ class motor {
     }
 };
 
-motor motor_ef(MOTOR_F_IN1, MOTOR_F_IN2, PINO_F_INT1, PWM_F1);
-motor motor_df(MOTOR_F_IN4, MOTOR_F_IN3, PINO_F_INT0, PWM_F2);
+
+#define MOTOR_F_IN4 50 // IN4 - MOTOR esquerdo - frente = LOW
+#define MOTOR_F_IN3 52  // IN3 - MOTOR esquerdo - frente = HIGH
+#define MOTOR_F_IN2 46 // IN2 - MOTOR Direito           LOW
+#define MOTOR_F_IN1 48  // IN1 - MOTOR direito - frente HIGH
+#define MOTOR_T_IN4 44
+#define MOTOR_T_IN3 42
+#define MOTOR_T_IN2 40
+#define MOTOR_T_IN1 38
+
+#define PINO_F_INT0 2 // 
+#define PINO_F_INT1 3 // comparadores dos encoders
+#define PINO_T_INT0 18 // pinos onde estão ligados os 
+#define PINO_T_INT1 19 // comparadores dos encoders
+
+#define PWM_F1 11   //pino ENB do driver ponte H (MOTOR DIREITO)
+#define PWM_F2 10    //pino ENA (MOTOR ESQUERDO)
+#define PWM_T1 4    // DIREITO
+#define PWM_T2 5     // ESQUERDO
+
+motor motor_ef(MOTOR_F_IN1, MOTOR_F_IN2, PINO_F_INT0, PWM_F1);
+motor motor_df(MOTOR_F_IN4, MOTOR_F_IN3, PINO_F_INT1, PWM_F2);
 motor motor_et(MOTOR_T_IN3, MOTOR_T_IN4, PINO_T_INT0, PWM_T2);
 motor motor_dt(MOTOR_T_IN2, MOTOR_T_IN1, PINO_T_INT1, PWM_T1);
 
@@ -208,9 +209,9 @@ void setup() {
   comprimento_faltando_d = 0;
   cont = 0;
   motor_ef.sentido(frente);
-  motor_df.sentido(desligado);
-  motor_et.sentido(frente);
-  motor_dt.sentido(desligado);
+  motor_df.sentido(frente);
+  motor_et.sentido(desligado);
+  motor_dt.sentido(frente);
   delay(1000);
 
 }
