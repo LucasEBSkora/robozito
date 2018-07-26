@@ -19,6 +19,56 @@ const bool debug = false;
 #define D3  11
 #define D4  12
 
+enum Estado {
+  ESTADO_PRINCIPAL = 0,
+  ESTADO_GIRANDO_HORARIO_ANGULO,
+  ESTADO_GIRANDO_ANTIHORARIO_ANGULO,
+  ESTADO_ANDANDO_FRENTE_DISTANCIA
+}
+
+Estado estado_atual = ESTADO_PRINCIPAL;
+
+float angulo_restante;
+float distancia_restante;
+
+void funcao_estado_principal() {
+  if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) {
+    if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
+    else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
+    else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) virar_direita_verde();
+    else andar_frente();
+  }
+  if (cor[C1] == branco) {
+    if (cor[E2] == preto) virar_esquerda_acentuada();
+    else if (cor[D2] == preto) virar_direita_acentuada();
+    else if (cor[EC2] == preto) virar_esquerda_media();
+    else if (cor[DC2] == preto) virar_direita_media();
+  }
+  else if (cor[C3] == branco) {
+    if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
+    else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
+  }
+}
+
+void funcao_girando_horario_angulo() {
+
+}
+
+void funcao_girando_antihorario_angulo() {
+
+}
+
+void funcao_andando_frente_distancia() {
+
+}
+
+void (*funcoes[])() = {
+  funcao_estado_principal,
+  funcao_girando_horario_angulo,
+  funcao_girando_antihorario_angulo,
+  funcao_andando_frente_distancia
+}
+
 #define virar_normal -1
 #define ir_frente 0
 #define ir_esquerda 1
