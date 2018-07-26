@@ -23,57 +23,12 @@ enum Estado {
   ESTADO_PRINCIPAL = 0,
   ESTADO_GIRANDO_HORARIO_ANGULO,
   ESTADO_GIRANDO_ANTIHORARIO_ANGULO,
-  ESTADO_ANDANDO_FRENTE_DISTANCIA
-}
-
-Estado estado_atual = ESTADO_PRINCIPAL;
-
-float angulo_restante;
-float distancia_restante;
-
-void funcao_estado_principal() {
-  if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) {
-    if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
-    else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
-    else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) virar_direita_verde();
-    else andar_frente();
-  }
-  if (cor[C1] == branco) {
-    if (cor[E2] == preto) virar_esquerda_acentuada();
-    else if (cor[D2] == preto) virar_direita_acentuada();
-    else if (cor[EC2] == preto) virar_esquerda_media();
-    else if (cor[DC2] == preto) virar_direita_media();
-  }
-  else if (cor[C3] == branco) {
-    if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
-    else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
-  }
-}
-
-void funcao_girando_horario_angulo() {
-
-}
-
-void funcao_girando_antihorario_angulo() {
-
-}
-
-void funcao_andando_frente_distancia() {
-
-}
-
-void (*funcoes[])() = {
-  funcao_estado_principal,
-  funcao_girando_horario_angulo,
-  funcao_girando_antihorario_angulo,
-  funcao_andando_frente_distancia
-}
-
-#define virar_normal -1
-#define ir_frente 0
-#define ir_esquerda 1
-#define ir_direita 2
-#define dar_meia_volta 3
+  ESTADO_ANDANDO_FRENTE_DISTANCIA,
+  ESTADO_PROCEDIMENTO_VERDE_ESQUERDA,
+  ESTADO_PROCEDIMENTO_VERDE_DIREITA,
+  ESTADO_PARADO,
+  ESTADO_TESTE
+};
 
 #define n_leituras 5
 
@@ -96,6 +51,7 @@ int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 
 
 const double RAIO_DA_RODA = 32; //milímetros
+const double DISTANCIA_ENTRE_AS_RODAS = 60; //milímetros
 /*
    são 20 risquinhos:
   volta inteira = 20*interrupts
@@ -203,46 +159,42 @@ void intdt_encoder() {
 
 void configurar_sensores_cor(int cor_e, int cor_ec, int cor_c, int cor_dc, int cor_d);
 
-byte movimento;
+/*
+  byte movimento;
 
-void meia_volta() {
+  void meia_volta() {
   motor_ef.sentido(desligado);
   motor_df.sentido(frente);
   motor_et.sentido(desligado);
   motor_dt.sentido(desligado);
-  movimento = dar_meia_volta;
-}
-
+  }
+*/
 void andar_frente() {
   motor_ef.sentido(frente);
   motor_df.sentido(frente);
   motor_et.sentido(frente);
   motor_dt.sentido(frente);
-  movimento = ir_frente;
 }
-
-void virar_esquerda_verde() {
+/*
+  void virar_esquerda_verde() {
   motor_ef.sentido(desligado);
   motor_df.sentido(frente);
   motor_et.sentido(desligado);
   motor_dt.sentido(desligado);
-  movimento = ir_esquerda;
-}
+  }
 
-void virar_direita_verde() {
+  void virar_direita_verde() {
   motor_ef.sentido(frente);
   motor_df.sentido(desligado);
   motor_et.sentido(desligado);
   motor_dt.sentido(desligado);
-  movimento = ir_direita;
-}
-
+  }
+*/
 void virar_direita_suave() {
   motor_ef.sentido(frente);
   motor_df.sentido(desligado);
   motor_et.sentido(frente);
   motor_dt.sentido(frente);
-  movimento = virar_normal;
 }
 
 void virar_esquerda_suave() {
@@ -250,7 +202,6 @@ void virar_esquerda_suave() {
   motor_df.sentido(frente);
   motor_et.sentido(frente);
   motor_dt.sentido(frente);
-  movimento = virar_normal;
 }
 
 void virar_direita_media() {
@@ -258,7 +209,6 @@ void virar_direita_media() {
   motor_df.sentido(desligado);
   motor_et.sentido(desligado);
   motor_dt.sentido(frente);
-  movimento = virar_normal;
 }
 
 void virar_esquerda_media() {
@@ -266,7 +216,6 @@ void virar_esquerda_media() {
   motor_df.sentido(frente);
   motor_et.sentido(frente);
   motor_dt.sentido(desligado);
-  movimento = virar_normal;
 }
 
 
@@ -275,7 +224,6 @@ void virar_esquerda_acentuada() {
   motor_df.sentido(frente);
   motor_et.sentido(tras);
   motor_dt.sentido(frente);
-  movimento = virar_normal;
 }
 
 void virar_direita_acentuada() {
@@ -283,15 +231,117 @@ void virar_direita_acentuada() {
   motor_df.sentido(tras);
   motor_et.sentido(frente);
   motor_dt.sentido(tras);
-  movimento = virar_normal;
+}
+
+void nao_virar_nada() {
+  motor_ef.sentido(desligado);
+  motor_df.sentido(desligado);
+  motor_et.sentido(desligado);
+  motor_dt.sentido(desligado);
 }
 
 void avaliar_sensores();
 
 long tempo_atual;
-float comprimento_faltando_e, comprimento_faltando_d;
 bool wait;
 unsigned int cont;
+
+Estado estado_atual = ESTADO_PRINCIPAL;
+
+float angulo_restante;
+float distancia_restante;
+
+void funcao_estado_principal() {
+  if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) {
+    if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
+      // VERDE DOS DOIS LADOS DETECTADO
+      angulo_restante = 180;
+      virar_esquerda_acentuada();
+      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+    }
+    else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) {
+      // VERDE NA ESQUERDA DETECTADO
+      distancia_restante = 250; // milimetros
+      andar_frente();
+      estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
+    }
+    else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
+      // VERDE NA DIREITA DETECTADO
+      distancia_restante = 250; // milimetros
+      andar_frente();
+      estado_atual = ESTADO_PROCEDIMENTO_VERDE_DIREITA;
+    }
+    else andar_frente();
+  }
+  if (cor[C1] == branco) {
+    if (cor[E2] == preto) virar_esquerda_acentuada();
+    else if (cor[D2] == preto) virar_direita_acentuada();
+    else if (cor[EC2] == preto) virar_esquerda_media();
+    else if (cor[DC2] == preto) virar_direita_media();
+  }
+  else if (cor[C3] == branco) {
+    if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
+    else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
+  }
+}
+
+void funcao_girando_horario_angulo() {
+  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  if (angulo_restante <= 0) {
+    estado_atual = ESTADO_PRINCIPAL;
+  }
+}
+
+void funcao_girando_antihorario_angulo() {
+  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  if (angulo_restante <= 0) {
+    estado_atual = ESTADO_PRINCIPAL;
+  }
+}
+
+void funcao_andando_frente_distancia() {
+  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  if (distancia_restante <= 0) {
+    estado_atual = ESTADO_PRINCIPAL;
+  }
+}
+
+void funcao_procedimento_verde_esquerda() {
+  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  if (distancia_restante <= 0) {
+    angulo_restante = 90;
+    virar_esquerda_acentuada();
+    estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+  }
+}
+
+void funcao_procedimento_verde_direita() {
+  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  if (distancia_restante <= 0) {
+    angulo_restante = 90;
+    virar_esquerda_acentuada();
+    estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
+  }
+}
+
+void funcao_parado() {
+  nao_virar_nada();
+}
+
+void funcao_teste() {
+  // ideia abandonada
+}
+
+void (*funcoes[])() = {
+  funcao_estado_principal,
+  funcao_girando_horario_angulo,
+  funcao_girando_antihorario_angulo,
+  funcao_andando_frente_distancia,
+  funcao_procedimento_verde_esquerda,
+  funcao_procedimento_verde_direita,
+  funcao_parado,
+  funcao_teste
+};
 
 void setup() {
 
@@ -302,8 +352,6 @@ void setup() {
 
   configurar_sensores_cor();
   if (debug) Serial.begin(115200);
-  comprimento_faltando_e = 0;
-  comprimento_faltando_d = 0;
   cont = 0;
   motor_ef.sentido(frente);
   motor_df.sentido(frente);
@@ -352,25 +400,44 @@ void loop() {
   motor_df.atualizar_pwm();
   motor_et.atualizar_pwm();
   motor_dt.atualizar_pwm();
+  tempo_atual = micros();
 
+  //parte de teste, retirar depois
+  if (estado_atual == ESTADO_PRINCIPAL) {
+    if (millis % 7000 == 0) { //aos sete segundos ele começa a meia volta
+      angulo_restante = 180;
+      virar_esquerda_acentuada();
+      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+    } else if (millis % 19000 == 0) { // aos 19 segundos ele começa a andar 30cm
+      distancia_restante = 300; // milimetros
+      andar_frente();
+      estado_atual = ESTADO_ANDANDO_FRENTE_DISTANCIA;
+    } else {
+      estado_atual = ESTADO_PARADO;
+    }
+  }
+  // fim da parte de teste
 
-  if (movimento == dar_meia_volta) {
+  funcoes[estado_atual]();
+
+  /*
+    if (movimento == dar_meia_volta) {
     comprimento_faltando_d  += motor_df.v_real * (micros() - tempo_atual) / 1000000;
     tempo_atual = micros();
     if (comprimento_faltando_d >= 135 * 3.14159 * 3 / 4 && cor[C2] == preto) andar_frente();
-  }
-  else if (movimento == ir_esquerda) {
+    }
+    else if (movimento == ir_esquerda) {
     comprimento_faltando_d  += motor_df.v_real * (micros() - tempo_atual) / 1000000;
     tempo_atual = micros();
     if (comprimento_faltando_d >= 135 * 3.14159 / 4 && cor[C2] == preto) andar_frente();
-  }
-  else if (movimento == ir_direita) {
+    }
+    else if (movimento == ir_direita) {
     comprimento_faltando_e += motor_ef.v_real * (micros() - tempo_atual) / 1000000;
     tempo_atual = micros();
     if (comprimento_faltando_e >= 135 * 3.14159 / 4 && cor[C2] == preto) andar_frente();
 
-  }
-  else {
+    }
+    else {
     if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) {
       if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
       else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
@@ -390,8 +457,8 @@ void loop() {
     comprimento_faltando_e = 0;
     comprimento_faltando_d = 0;
     tempo_atual = micros();
-  }
-
+    }
+  */
 
 
   if (millis() % 250 == 0 && debug) {
