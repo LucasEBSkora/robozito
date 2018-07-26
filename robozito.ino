@@ -404,11 +404,11 @@ void loop() {
 
   //parte de teste, retirar depois
   if (estado_atual == ESTADO_PRINCIPAL) {
-    if (millis % 7000 == 0) { //aos sete segundos ele começa a meia volta
+    if (millis() % 7000 == 0) { //aos sete segundos ele começa a meia volta
       angulo_restante = 180;
       virar_esquerda_acentuada();
       estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-    } else if (millis % 19000 == 0) { // aos 19 segundos ele começa a andar 30cm
+    } else if (millis() % 19000 == 0) { // aos 19 segundos ele começa a andar 30cm
       distancia_restante = 300; // milimetros
       andar_frente();
       estado_atual = ESTADO_ANDANDO_FRENTE_DISTANCIA;
