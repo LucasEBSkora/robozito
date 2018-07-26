@@ -410,6 +410,7 @@ void loop() {
     else {
     if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto) {
       if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
+      else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
       else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) virar_direita_verde();
     }
     else if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) andar_frente();
