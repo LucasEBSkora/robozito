@@ -42,6 +42,8 @@ int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 #define Ki 0.05
 #define Kd 0.03
 
+#define noventa ( 3.1415926535 * 0.92 )
+
 #define v_min 150
 #define v_max 255
 
@@ -65,7 +67,7 @@ const double DISTANCIA_ENTRE_AS_RODAS = 60; //milímetros
 class motor {
   public:
     int pino_frente, pino_tras, pino_encoder, pino_pwm;
-    double v_desejada, v_real, pwm, diff, tempo;;
+    double v_desejada, v_real, pwm, diff, tempo;
     PID* pid;
     double calc_velocidade() {
       return ((TWO_PI * RAIO_DA_RODA * 1000000) / (20.*diff));
@@ -224,27 +226,29 @@ unsigned int cont;
 Estado estado_atual = ESTADO_PRINCIPAL;
 
 float angulo_restante;
+float distancia_desejada;
 float distancia_restante;
+float v_desejada_final = 200;
 
 void funcao_estado_principal() {
-  if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) {
+  if (cor[C2] == preto && cor[C1] == preto && cor[C3] == preto) {
     if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
       // VERDE DOS DOIS LADOS DETECTADO
-      angulo_restante = 180;
+      angulo_restante = noventa * 2;
       virar_esquerda_acentuada();
       estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
     }
     else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) {
       // VERDE NA ESQUERDA DETECTADO
-      distancia_restante = 250; // milimetros
-      andar_frente();
-      estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
+      angulo_restante = noventa;
+      virar_esquerda_acentuada();
+      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
     }
     else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
       // VERDE NA DIREITA DETECTADO
-      distancia_restante = 250; // milimetros
-      andar_frente();
-      estado_atual = ESTADO_PROCEDIMENTO_VERDE_DIREITA;
+      angulo_restante = noventa;
+      virar_direita_acentuada();
+      estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
     }
     else andar_frente();
   }
@@ -262,6 +266,7 @@ void funcao_estado_principal() {
 
 void funcao_girando_horario_angulo() {
   angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  tempo_atual = micros();
   if (angulo_restante <= 0) {
     estado_atual = ESTADO_PRINCIPAL;
   }
@@ -269,6 +274,7 @@ void funcao_girando_horario_angulo() {
 
 void funcao_girando_antihorario_angulo() {
   angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  tempo_atual = micros();
   if (angulo_restante <= 0) {
     estado_atual = ESTADO_PRINCIPAL;
   }
@@ -276,27 +282,57 @@ void funcao_girando_antihorario_angulo() {
 
 void funcao_andando_frente_distancia() {
   distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  tempo_atual = micros();
   if (distancia_restante <= 0) {
     estado_atual = ESTADO_PRINCIPAL;
+    motor_ef.v_desejada = v_desejada_final;
+    motor_df.v_desejada = v_desejada_final;
+    motor_et.v_desejada = v_desejada_final;
+    motor_dt.v_desejada = v_desejada_final;
+    return;
   }
+  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
 void funcao_procedimento_verde_esquerda() {
   distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  tempo_atual = micros();
   if (distancia_restante <= 0) {
-    angulo_restante = 90;
+    angulo_restante = noventa;
     virar_esquerda_acentuada();
     estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+    motor_ef.v_desejada = v_desejada_final;
+    motor_df.v_desejada = v_desejada_final;
+    motor_et.v_desejada = v_desejada_final;
+    motor_dt.v_desejada = v_desejada_final;
+    return;
   }
+  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
 void funcao_procedimento_verde_direita() {
   distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  tempo_atual = micros();
   if (distancia_restante <= 0) {
-    angulo_restante = 90;
-    virar_esquerda_acentuada();
+    angulo_restante = noventa;
+    virar_direita_acentuada();
     estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
+    motor_ef.v_desejada = v_desejada_final;
+    motor_df.v_desejada = v_desejada_final;
+    motor_et.v_desejada = v_desejada_final;
+    motor_dt.v_desejada = v_desejada_final;
+    return;
   }
+  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
 void funcao_parado() {
@@ -362,6 +398,38 @@ void debug_led() {
   digitalWrite(27, cor[D4]);
 }
 
+void debug_led_2() {
+  digitalWrite(34, 0);
+  digitalWrite(35, 0);
+  digitalWrite(31, 0);
+  digitalWrite(32, 0);
+  digitalWrite(30, 0);
+  digitalWrite(23, 0);
+  digitalWrite(29, 0);
+  digitalWrite(33, 0);
+  digitalWrite(25, 0);
+  digitalWrite(26, 0);
+  digitalWrite(28, 0);
+  digitalWrite(24, 0);
+  digitalWrite(27, 0);
+}
+
+void debug_led_3() {
+  digitalWrite(34, 1);
+  digitalWrite(35, 1);
+  digitalWrite(31, 1);
+  digitalWrite(32, 1);
+  digitalWrite(30, 1);
+  digitalWrite(23, 1);
+  digitalWrite(29, 1);
+  digitalWrite(33, 1);
+  digitalWrite(25, 1);
+  digitalWrite(26, 1);
+  digitalWrite(28, 1);
+  digitalWrite(24, 1);
+  digitalWrite(27, 1);
+}
+
 #define comprimento_verde 20
 void loop() {
   cont++;
@@ -371,22 +439,36 @@ void loop() {
   motor_df.atualizar_pwm();
   motor_et.atualizar_pwm();
   motor_dt.atualizar_pwm();
-  tempo_atual = micros();
 
   //parte de teste, retirar depois
-  if (estado_atual == ESTADO_PRINCIPAL) {
-    if (millis() % 7000 == 0) { //aos sete segundos ele começa a meia volta
-      angulo_restante = 180;
-      virar_esquerda_acentuada();
-      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-    } else if (millis() % 19000 == 0) { // aos 19 segundos ele começa a andar 30cm
-      distancia_restante = 300; // milimetros
-      andar_frente();
-      estado_atual = ESTADO_ANDANDO_FRENTE_DISTANCIA;
-    } else {
-      estado_atual = ESTADO_PARADO;
-    }
-  }
+//  if (estado_atual == ESTADO_PRINCIPAL || estado_atual == ESTADO_TESTE) {
+//    /*if (millis() % 3000 == 0) { //aos sete segundos ele começa a meia volta
+//      angulo_restante = 3.1415926535;
+//      virar_esquerda_acentuada();
+//      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+//      debug_led_2();
+//      } else */
+//    if (millis() == 3000 || millis() == 3001 || millis() == 3002) { // aos 19 segundos ele começa a andar 30cm
+//      /*distancia_desejada = 55; // milimetros
+//      distancia_restante = 55; // milimetros
+//      andar_frente();
+//      estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
+//      debug_led_2();*/
+//      
+//      angulo_restante = noventa;
+//      virar_esquerda_acentuada();
+//      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+//      debug_led_2();
+//    } else {
+//      motor_ef.sentido(desligado);
+//      motor_df.sentido(desligado);
+//      motor_et.sentido(desligado);
+//      motor_dt.sentido(desligado);
+//      estado_atual = ESTADO_TESTE;
+//      debug_led_3();
+//      tempo_atual = micros();
+//    }
+//  }
   // fim da parte de teste
 
   funcoes[estado_atual]();
