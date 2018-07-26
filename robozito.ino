@@ -29,7 +29,7 @@ const bool debug = false;
 
 //                          E2   E3   E4   EC2  EC3  C1   C2   C3   DC2  DC3  D2   D3   D4
 const int sensor[13] =     {A5, A13, A14, A12, A11, A10, A9,  A8,  A7,  A6,  A15,  A4,  A3};
-const int min_preto[13]  = {600, 600, 650, 600, 600, 600, 550, 600, 550, 600, 600, 600, 650};
+const int min_preto[13]  = {700, 750, 750, 650, 650, 600, 550, 750, 650, 650, 700, 750, 750};
 int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -151,12 +151,12 @@ void intdt_encoder() {
 }
 
 
-void configurar_sensores_cor(int cor_e, int cor_ec, int cor_c, int cor_dc, int cor_d);
+void configurar_sensores_cor();
 
 byte movimento;
 
 void meia_volta() {
-  motor_ef.sentido(desligado);
+  motor_ef.sentido(tras);
   motor_df.sentido(frente);
   motor_et.sentido(desligado);
   motor_dt.sentido(desligado);
@@ -175,14 +175,14 @@ void virar_esquerda_verde() {
   motor_ef.sentido(desligado);
   motor_df.sentido(frente);
   motor_et.sentido(desligado);
-  motor_dt.sentido(desligado);
+  motor_dt.sentido(frente);
   movimento = ir_esquerda;
 }
 
 void virar_direita_verde() {
   motor_ef.sentido(frente);
   motor_df.sentido(desligado);
-  motor_et.sentido(desligado);
+  motor_et.sentido(frente);
   motor_dt.sentido(desligado);
   movimento = ir_direita;
 }
@@ -255,10 +255,6 @@ void setup() {
   comprimento_faltando_e = 0;
   comprimento_faltando_d = 0;
   cont = 0;
-  motor_ef.sentido(frente);
-  motor_df.sentido(frente);
-  motor_et.sentido(frente);
-  motor_dt.sentido(frente);
   pinMode(22, OUTPUT);
   pinMode(23, OUTPUT);
   pinMode(24, OUTPUT);
@@ -274,7 +270,7 @@ void setup() {
   pinMode(34, OUTPUT);
   pinMode(35, OUTPUT);
   delay(1000);
-
+  andar_frente();
 }
 
 void debug_led() {
@@ -321,21 +317,20 @@ void loop() {
 
   }
   else {
-    if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) {
+    if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == ir_frente) {
       if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
-      else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
       else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) virar_direita_verde();
-      else andar_frente();
     }
+    else if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) andar_frente();
     if (cor[C1] == branco) {
       if (cor[E2] == preto) virar_esquerda_acentuada();
       else if (cor[D2] == preto) virar_direita_acentuada();
       else if (cor[EC2] == preto) virar_esquerda_media();
       else if (cor[DC2] == preto) virar_direita_media();
     }
-    else if (cor[C3] == branco) {
-      if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
-      else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
+    else if (movimento == ir_frente) {
+      if (cor[DC3] == preto ) virar_esquerda_suave();
+      else if (cor[EC3] == preto) virar_direita_suave();
     }
     comprimento_faltando_e = 0;
     comprimento_faltando_d = 0;
