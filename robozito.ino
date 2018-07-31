@@ -19,29 +19,6 @@ const bool debug = true;
 #define D3  11
 #define D4  12
 
-#define ECHO_PIN 
-#define TRIGGER_PIN 
-
-const float CONVERSAO_P_MILIMETROS = 0,1715; // = 343/2000 milimetos por microsegundo
-volatile long tempo_distancia;
-volatile float distancia_mm;
-volatile int contando;
-
-void int_inicio_contagem(){
-  tempo_distancia = micros();
-  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
-  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_fim_contagem, FALLING);
-//  contando = 1;
-}
-
-void int_fim_contagem(){
-  tempo_distancia = micros() - tempo_distancia;
-  distancia_mm = tempo_distancia * CONVERSAO_P_MILIMETROS;
-  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
-  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
-  contando = 0;
-}
-
 enum Estado {
   ESTADO_PRINCIPAL = 0,
   ESTADO_GIRANDO_HORARIO_ANGULO,
@@ -72,7 +49,7 @@ int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 #define Ki 0.05
 #define Kd 0.03
 
-#define noventa ( 3.1415926535 * 0.92 )
+#define NOVENTA ( 3.1415926535 * 0.92 )
 
 #define v_min 150
 #define v_max 255
@@ -168,6 +145,9 @@ class motor {
 #define PWM_T1 4    // DIREITO
 #define PWM_T2 5     // ESQUERDO
 
+#define ECHO_PIN 21 //pino INT2 (precisa de interrupcao)
+#define TRIGGER_PIN 22
+
 motor motor_ef(MOTOR_F_IN1, MOTOR_F_IN2, PINO_F_INT0, PWM_F1);
 motor motor_df(MOTOR_F_IN4, MOTOR_F_IN3, PINO_F_INT1, PWM_F2);
 motor motor_et(MOTOR_T_IN3, MOTOR_T_IN4, PINO_T_INT0, PWM_T2);
@@ -192,6 +172,43 @@ void intdt_encoder() {
   motor_dt.diff = micros() - motor_dt.tempo;
   motor_dt.tempo = micros();
   motor_dt.v_real = motor_dt.calc_velocidade();
+}
+
+#define TESTE_OBSTACULO 1
+
+const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
+volatile long tempo_distancia;
+volatile float distancia_mm;
+volatile int contando;
+
+//void int_inicio_contagem() {
+//  //  if (contando){
+//  tempo_distancia = micros();
+//  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
+//  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_fim_contagem, FALLING);
+//  //  }
+//  //  contando = 1;
+//}
+//
+//void int_fim_contagem() {
+//  //  if (contando){
+//  tempo_distancia = micros() - tempo_distancia;
+//  distancia_mm = tempo_distancia * CONVERSAO_P_MILIMETROS;
+//  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
+//  //    attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
+//  contando = 0;
+//  //  }
+//}
+
+void int_mudanca_ultrassom() {
+  if (digitalRead(ECHO_PIN) == HIGH){
+    contando = 1;
+    tempo_distancia = micros();
+  } else {
+    contando = 0;
+    tempo_distancia = micros() - tempo_distancia;
+    distancia_mm = tempo_distancia * CONVERSAO_P_MILIMETROS;
+  }
 }
 
 byte movimento;
@@ -290,15 +307,6 @@ void nao_virar_nada() {
   movimento = nao_andando;
 }
 
-void girando(){
-  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
-  tempo_atual = micros();
-}
-
-void andando(){
-  
-}
-
 void avaliar_sensores();
 
 long tempo_atual;
@@ -312,34 +320,50 @@ float distancia_desejada;
 float distancia_restante;
 float v_desejada_final = 250;
 
+void girando() {
+  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  tempo_atual = micros();
+}
+
+void andando() {
+  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  tempo_atual = micros();
+  //  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  //  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  //  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+  //  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
+}
+
 void funcao_estado_principal() {
-  if (distancia_mm <= 50){
+  if (distancia_mm <= 50) {
     // OBSTACULO DETECTADO
     // DESVIAR
-    
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_OBSTACULO_PASSO_1;
   }
+#if TESTE_OBSTACULO == 0
   if (cor[C2] == preto) {
     if (cor[C1] == preto && cor[C3] == preto && movimento == andando_frente) {
       if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto ) {
         // VERDE DOS DOIS LADOS DETECTADO
-        angulo_restante = noventa * 2;
+        angulo_restante = NOVENTA * 2;
         virar_esquerda_acentuada();
         estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
       }
       else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) {
         // VERDE NA ESQUERDA DETECTADO
-        angulo_restante = noventa;
+        angulo_restante = NOVENTA;
         virar_esquerda_acentuada();
         estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
       }
       else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
         // VERDE NA DIREITA DETECTADO
-        angulo_restante = noventa;
+        angulo_restante = NOVENTA;
         virar_direita_acentuada();
         estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
       }
     }
-    
+
     else if (cor [C1] == preto || cor [C3] == preto) andar_frente();
   }
   if (cor[C1] == branco) {
@@ -358,77 +382,58 @@ void funcao_estado_principal() {
     if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
     else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
   }
+#endif
 }
 
 void funcao_girando_horario_angulo() {
-  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
-  tempo_atual = micros();
+  girando();
   if (angulo_restante <= 0) {
     estado_atual = ESTADO_PRINCIPAL;
   }
 }
 
 void funcao_girando_antihorario_angulo() {
-  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
-  tempo_atual = micros();
+  girando();
   if (angulo_restante <= 0) {
     estado_atual = ESTADO_PRINCIPAL;
   }
 }
 
 void funcao_andando_frente_distancia() {
-  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
-  tempo_atual = micros();
+  andando();
   if (distancia_restante <= 0) {
     estado_atual = ESTADO_PRINCIPAL;
-    motor_ef.v_desejada = v_desejada_final;
-    motor_df.v_desejada = v_desejada_final;
-    motor_et.v_desejada = v_desejada_final;
-    motor_dt.v_desejada = v_desejada_final;
-    return;
+    //    motor_ef.v_desejada = v_desejada_final;
+    //    motor_df.v_desejada = v_desejada_final;
+    //    motor_et.v_desejada = v_desejada_final;
+    //    motor_dt.v_desejada = v_desejada_final;
   }
-  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
 void funcao_procedimento_verde_esquerda() {
-  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
-  tempo_atual = micros();
+  andando();
   if (distancia_restante <= 0) {
-    angulo_restante = noventa;
+    angulo_restante = NOVENTA;
     virar_esquerda_acentuada();
     estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-    motor_ef.v_desejada = v_desejada_final;
-    motor_df.v_desejada = v_desejada_final;
-    motor_et.v_desejada = v_desejada_final;
-    motor_dt.v_desejada = v_desejada_final;
-    return;
+    //    motor_ef.v_desejada = v_desejada_final;
+    //    motor_df.v_desejada = v_desejada_final;
+    //    motor_et.v_desejada = v_desejada_final;
+    //    motor_dt.v_desejada = v_desejada_final;
   }
-  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
 void funcao_procedimento_verde_direita() {
-  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
-  tempo_atual = micros();
+  andando();
   if (distancia_restante <= 0) {
-    angulo_restante = noventa;
+    angulo_restante = NOVENTA;
     virar_direita_acentuada();
     estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
-    motor_ef.v_desejada = v_desejada_final;
-    motor_df.v_desejada = v_desejada_final;
-    motor_et.v_desejada = v_desejada_final;
-    motor_dt.v_desejada = v_desejada_final;
-    return;
+    //    motor_ef.v_desejada = v_desejada_final;
+    //    motor_df.v_desejada = v_desejada_final;
+    //    motor_et.v_desejada = v_desejada_final;
+    //    motor_dt.v_desejada = v_desejada_final;
   }
-  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
 void funcao_parado() {
@@ -439,32 +444,66 @@ void funcao_teste() {
   // ideia abandonada
 }
 
-void funcao_obstaculo_passo_1(){
-  
+void funcao_obstaculo_passo_1() {
+  virar_esquerda_acentuada();
+  girando();
+  if (angulo_restante <= 0) {
+    distancia_restante = 200; //milímetros
+    estado_atual = ESTADO_OBSTACULO_PASSO_2;
+  }
 }
 
-void funcao_obstaculo_passo_2(){
-  
+void funcao_obstaculo_passo_2() {
+  andar_frente();
+  andando();
+  if (distancia_restante <= 0) {
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_OBSTACULO_PASSO_3;
+  }
 }
 
-void funcao_obstaculo_passo_3(){
-  
+void funcao_obstaculo_passo_3() {
+  virar_direita_acentuada();
+  girando();
+  if (angulo_restante <= 0) {
+    distancia_restante = 300; //milímetros
+    estado_atual = ESTADO_OBSTACULO_PASSO_4;
+  }
 }
 
-void funcao_obstaculo_passo_4(){
-  
+void funcao_obstaculo_passo_4() {
+  andar_frente();
+  andando();
+  if (distancia_restante <= 0) {
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_OBSTACULO_PASSO_5;
+  }
 }
 
-void funcao_obstaculo_passo_5(){
-  
+void funcao_obstaculo_passo_5() {
+  virar_direita_acentuada();
+  girando();
+  if (angulo_restante <= 0) {
+    distancia_restante = 200; //milímetros
+    estado_atual = ESTADO_OBSTACULO_PASSO_6;
+  }
 }
 
-void funcao_obstaculo_passo_6(){
-  
+void funcao_obstaculo_passo_6() {
+  andar_frente();
+  andando();
+  if (distancia_restante <= 0) {
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_OBSTACULO_PASSO_7;
+  }
 }
 
-void funcao_obstaculo_passo_7(){
-  
+void funcao_obstaculo_passo_7() {
+  virar_esquerda_acentuada();
+  girando();
+  if (angulo_restante <= 0) {
+    estado_atual = ESTADO_PRINCIPAL;
+  }
 }
 
 void (*funcoes[])() = {
@@ -491,8 +530,9 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(motor_df.pino_encoder), intdf_encoder, RISING);
   attachInterrupt(digitalPinToInterrupt(motor_et.pino_encoder), intet_encoder, RISING);
   attachInterrupt(digitalPinToInterrupt(motor_dt.pino_encoder), intdt_encoder, RISING);
-  
-  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
+
+  //  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
+  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_mudanca_ultrassom, CHANGE);
 
   configurar_sensores_cor();
   if (debug) Serial.begin(115200);
@@ -511,6 +551,9 @@ void setup() {
   pinMode(33, OUTPUT);
   pinMode(34, OUTPUT);
   pinMode(35, OUTPUT);
+
+  pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
   delay(1000);
   andar_frente();
 }
@@ -572,13 +615,15 @@ void loop() {
   motor_df.atualizar_pwm();
   motor_et.atualizar_pwm();
   motor_dt.atualizar_pwm();
-  if (!contando){
-    contando = 1;
+  if (!contando && (millis() % 10 <= 0)) {
     digitalWrite(TRIGGER_PIN, LOW);
     delayMicroseconds(3);
     digitalWrite(TRIGGER_PIN, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIGGER_PIN, LOW);
+//    attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
+//    attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_fim_contagem, FALLING);
+//    tempo_distancia = micros();
   }
 
   //parte de teste, retirar depois
@@ -596,7 +641,7 @@ void loop() {
   //      estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
   //      debug_led_2();*/
   //
-  //      angulo_restante = noventa;
+  //      angulo_restante = NOVENTA;
   //      virar_esquerda_acentuada();
   //      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
   //      debug_led_2();
@@ -654,7 +699,7 @@ void loop() {
   */
 
 
-  if (millis() % 250 == 0 && debug) {
+  if (millis() % 1000 <= 1 && debug) {
     noInterrupts();
     /*Serial.println(motor_ef.v_real);
       Serial.println(motor_df.v_real);
@@ -663,7 +708,12 @@ void loop() {
 
       Serial.println();
     */
+    Serial.print("medicao atual = ");
+    Serial.print(distancia_mm);
+    Serial.println(" milimetros");
+    Serial.println(contando);
 
+#if TESTE_OBSTACULO == 0
     Serial.print("                ");
     Serial.print(medicao[C1]);
     Serial.print(" ");
@@ -723,7 +773,7 @@ void loop() {
     Serial.println(cont);
     //Serial.println(modo);
     Serial.println(" ");
-
+#endif
     cont = 0;
     interrupts();
   }
