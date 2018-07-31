@@ -35,7 +35,8 @@ enum Estado {
   ESTADO_OBSTACULO_PASSO_5,
   ESTADO_OBSTACULO_PASSO_6,
   ESTADO_OBSTACULO_PASSO_7,
-  ESTADO_OBSTACULO_PASSO_0
+  ESTADO_OBSTACULO_PASSO_0,
+  ESTADO_PAUSA_PROXIMO
 };
 
 #define n_leituras 5
@@ -343,7 +344,7 @@ void andando() {
 }
 
 void funcao_estado_principal() {
-  if (distancia_mm <= 70) {
+  if (distancia_mm <= 85) {
     // OBSTACULO DETECTADO
     // DESVIAR
     tempo_restante = 350000;
@@ -457,14 +458,17 @@ void funcao_teste() {
   // ideia abandonada
 }
 
+#define PAUSA 150000
+
 void funcao_obstaculo_passo_1() {
   virar_esquerda_acentuada();
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 250; //milímetros
+    distancia_restante = 170; //milímetros
 //    estado_atual = ESTADO_OBSTACULO_PASSO_2;
+    tempo_restante = PAUSA;
     proximo_estado = ESTADO_OBSTACULO_PASSO_2;
-    estado_atual = ESTADO_
+    estado_atual = ESTADO_PAUSA_PROXIMO;
   }
 }
 
@@ -473,7 +477,10 @@ void funcao_obstaculo_passo_2() {
   andando();
   if (distancia_restante <= 0) {
     angulo_restante = NOVENTA;
-    estado_atual = ESTADO_OBSTACULO_PASSO_3;
+//    estado_atual = ESTADO_OBSTACULO_PASSO_3;
+    tempo_restante = PAUSA;
+    proximo_estado = ESTADO_OBSTACULO_PASSO_3;
+    estado_atual = ESTADO_PAUSA_PROXIMO;
   }
 }
 
@@ -482,7 +489,10 @@ void funcao_obstaculo_passo_3() {
   girando();
   if (angulo_restante <= 0) {
     distancia_restante = 250; //milímetros
-    estado_atual = ESTADO_OBSTACULO_PASSO_4;
+//    estado_atual = ESTADO_OBSTACULO_PASSO_4;
+    tempo_restante = PAUSA;
+    proximo_estado = ESTADO_OBSTACULO_PASSO_4;
+    estado_atual = ESTADO_PAUSA_PROXIMO;
   }
 }
 
@@ -491,7 +501,10 @@ void funcao_obstaculo_passo_4() {
   andando();
   if (distancia_restante <= 0) {
     angulo_restante = NOVENTA;
-    estado_atual = ESTADO_OBSTACULO_PASSO_5;
+//    estado_atual = ESTADO_OBSTACULO_PASSO_5;
+    tempo_restante = PAUSA;
+    proximo_estado = ESTADO_OBSTACULO_PASSO_5;
+    estado_atual = ESTADO_PAUSA_PROXIMO;
   }
 }
 
@@ -499,17 +512,24 @@ void funcao_obstaculo_passo_5() {
   virar_direita_acentuada();
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 250; //milímetros
-    estado_atual = ESTADO_OBSTACULO_PASSO_6;
+    distancia_restante = 170; //milímetros
+//    estado_atual = ESTADO_OBSTACULO_PASSO_6;
+    tempo_restante = PAUSA;
+    proximo_estado = ESTADO_OBSTACULO_PASSO_6;
+    estado_atual = ESTADO_PAUSA_PROXIMO;
   }
 }
 
 void funcao_obstaculo_passo_6() {
   andar_frente();
   andando();
-  if (distancia_restante <= 0) {
+//  if (distancia_restante <= 0) {
+  if (cor[C2] == PRETO){
     angulo_restante = NOVENTA;
-    estado_atual = ESTADO_OBSTACULO_PASSO_7;
+//    estado_atual = ESTADO_OBSTACULO_PASSO_7;
+    tempo_restante = PAUSA;
+    proximo_estado = ESTADO_OBSTACULO_PASSO_7;
+    estado_atual = ESTADO_PAUSA_PROXIMO;
   }
 }
 
@@ -560,7 +580,8 @@ void (*funcoes[])() = {
   funcao_obstaculo_passo_5,
   funcao_obstaculo_passo_6,
   funcao_obstaculo_passo_7,
-  funcao_obstaculo_passo_0
+  funcao_obstaculo_passo_0,
+  funcao_pausa_proximo
 };
 
 void setup() {
