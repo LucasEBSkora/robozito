@@ -1,6 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = false;
+const bool debug = true;
 
 #define preto      0
 #define branco     1
@@ -19,6 +19,29 @@ const bool debug = false;
 #define D3  11
 #define D4  12
 
+#define ECHO_PIN 
+#define TRIGGER_PIN 
+
+const float CONVERSAO_P_MILIMETROS = 0,1715; // = 343/2000 milimetos por microsegundo
+volatile long tempo_distancia;
+volatile float distancia_mm;
+volatile int contando;
+
+void int_inicio_contagem(){
+  tempo_distancia = micros();
+  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
+  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_fim_contagem, FALLING);
+//  contando = 1;
+}
+
+void int_fim_contagem(){
+  tempo_distancia = micros() - tempo_distancia;
+  distancia_mm = tempo_distancia * CONVERSAO_P_MILIMETROS;
+  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
+  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
+  contando = 0;
+}
+
 enum Estado {
   ESTADO_PRINCIPAL = 0,
   ESTADO_GIRANDO_HORARIO_ANGULO,
@@ -27,14 +50,21 @@ enum Estado {
   ESTADO_PROCEDIMENTO_VERDE_ESQUERDA,
   ESTADO_PROCEDIMENTO_VERDE_DIREITA,
   ESTADO_PARADO,
-  ESTADO_TESTE
+  ESTADO_TESTE,
+  ESTADO_OBSTACULO_PASSO_1,
+  ESTADO_OBSTACULO_PASSO_2,
+  ESTADO_OBSTACULO_PASSO_3,
+  ESTADO_OBSTACULO_PASSO_4,
+  ESTADO_OBSTACULO_PASSO_5,
+  ESTADO_OBSTACULO_PASSO_6,
+  ESTADO_OBSTACULO_PASSO_7
 };
 
 #define n_leituras 5
 
 //                          E2   E3   E4   EC2  EC3  C1   C2   C3   DC2  DC3  D2   D3   D4
 const int sensor[13] =     {A5, A13, A14, A12, A11, A10, A9,  A8,  A7,  A6,  A15,  A4,  A3};
-const int min_preto[13]  = {700, 750, 750, 650, 650, 600, 550, 750, 650, 650, 700, 750, 750};
+const int min_preto[13]  = {700, 750, 750, 650, 650, 600, 500, 750, 510, 650, 700, 750, 750};
 int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -73,7 +103,8 @@ const double DISTANCIA_ENTRE_AS_RODAS = 60; //milímetros
 class motor {
   public:
     int pino_frente, pino_tras, pino_encoder, pino_pwm;
-    double v_desejada, v_real, pwm, diff, tempo;
+    double v_desejada, pwm;
+    volatile double v_real, diff, tempo;
     PID* pid;
     double calc_velocidade() {
       return ((TWO_PI * RAIO_DA_RODA * 1000000) / (20.*diff));
@@ -141,7 +172,6 @@ motor motor_ef(MOTOR_F_IN1, MOTOR_F_IN2, PINO_F_INT0, PWM_F1);
 motor motor_df(MOTOR_F_IN4, MOTOR_F_IN3, PINO_F_INT1, PWM_F2);
 motor motor_et(MOTOR_T_IN3, MOTOR_T_IN4, PINO_T_INT0, PWM_T2);
 motor motor_dt(MOTOR_T_IN2, MOTOR_T_IN1, PINO_T_INT1, PWM_T1);
-
 
 void intef_encoder() {
   motor_ef.diff = micros() - motor_ef.tempo;
@@ -260,6 +290,15 @@ void nao_virar_nada() {
   movimento = nao_andando;
 }
 
+void girando(){
+  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  tempo_atual = micros();
+}
+
+void andando(){
+  
+}
+
 void avaliar_sensores();
 
 long tempo_atual;
@@ -274,7 +313,12 @@ float distancia_restante;
 float v_desejada_final = 250;
 
 void funcao_estado_principal() {
-  if (cor[C2] == preto ) {
+  if (distancia_mm <= 50){
+    // OBSTACULO DETECTADO
+    // DESVIAR
+    
+  }
+  if (cor[C2] == preto) {
     if (cor[C1] == preto && cor[C3] == preto && movimento == andando_frente) {
       if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto ) {
         // VERDE DOS DOIS LADOS DETECTADO
@@ -395,6 +439,34 @@ void funcao_teste() {
   // ideia abandonada
 }
 
+void funcao_obstaculo_passo_1(){
+  
+}
+
+void funcao_obstaculo_passo_2(){
+  
+}
+
+void funcao_obstaculo_passo_3(){
+  
+}
+
+void funcao_obstaculo_passo_4(){
+  
+}
+
+void funcao_obstaculo_passo_5(){
+  
+}
+
+void funcao_obstaculo_passo_6(){
+  
+}
+
+void funcao_obstaculo_passo_7(){
+  
+}
+
 void (*funcoes[])() = {
   funcao_estado_principal,
   funcao_girando_horario_angulo,
@@ -403,7 +475,14 @@ void (*funcoes[])() = {
   funcao_procedimento_verde_esquerda,
   funcao_procedimento_verde_direita,
   funcao_parado,
-  funcao_teste
+  funcao_teste,
+  funcao_obstaculo_passo_1,
+  funcao_obstaculo_passo_2,
+  funcao_obstaculo_passo_3,
+  funcao_obstaculo_passo_4,
+  funcao_obstaculo_passo_5,
+  funcao_obstaculo_passo_6,
+  funcao_obstaculo_passo_7
 };
 
 void setup() {
@@ -412,6 +491,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(motor_df.pino_encoder), intdf_encoder, RISING);
   attachInterrupt(digitalPinToInterrupt(motor_et.pino_encoder), intet_encoder, RISING);
   attachInterrupt(digitalPinToInterrupt(motor_dt.pino_encoder), intdt_encoder, RISING);
+  
+  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
 
   configurar_sensores_cor();
   if (debug) Serial.begin(115200);
@@ -491,6 +572,14 @@ void loop() {
   motor_df.atualizar_pwm();
   motor_et.atualizar_pwm();
   motor_dt.atualizar_pwm();
+  if (!contando){
+    contando = 1;
+    digitalWrite(TRIGGER_PIN, LOW);
+    delayMicroseconds(3);
+    digitalWrite(TRIGGER_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIGGER_PIN, LOW);
+  }
 
   //parte de teste, retirar depois
   //  if (estado_atual == ESTADO_PRINCIPAL || estado_atual == ESTADO_TESTE) {
