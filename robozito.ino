@@ -1,6 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = true;
+const bool debug = false;
 
 #define preto      0
 #define branco     1
@@ -34,7 +34,8 @@ enum Estado {
   ESTADO_OBSTACULO_PASSO_4,
   ESTADO_OBSTACULO_PASSO_5,
   ESTADO_OBSTACULO_PASSO_6,
-  ESTADO_OBSTACULO_PASSO_7
+  ESTADO_OBSTACULO_PASSO_7,
+  ESTADO_OBSTACULO_PASSO_0
 };
 
 #define n_leituras 5
@@ -49,7 +50,7 @@ int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 #define Ki 0.05
 #define Kd 0.03
 
-#define NOVENTA ( 3.1415926535 * 0.92 )
+#define NOVENTA ( 3.1415926535 * 0.55 )
 
 #define v_min 150
 #define v_max 255
@@ -66,7 +67,7 @@ int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
 #define nao_andando 4
 
 const double RAIO_DA_RODA = 32; //milímetros
-const double DISTANCIA_ENTRE_AS_RODAS = 60; //milímetros
+const double DISTANCIA_ENTRE_AS_RODAS = 130; //milímetros
 /*
    são 20 risquinhos:
   volta inteira = 20*interrupts
@@ -311,22 +312,29 @@ void avaliar_sensores();
 
 long tempo_atual;
 bool wait;
+int primeira_vez;
 unsigned int cont;
 
 Estado estado_atual = ESTADO_PRINCIPAL;
+Estado proximo_estado = ESTADO_PRINCIPAL;
 
 float angulo_restante;
 float distancia_desejada;
 float distancia_restante;
+long tempo_restante;
 float v_desejada_final = 250;
 
 void girando() {
-  angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  if (primeira_vez++ != 0){
+    angulo_restante -= ((((motor_df.v_real + motor_dt.v_real) / 2) + ((motor_ef.v_real + motor_et.v_real) / 2)) / DISTANCIA_ENTRE_AS_RODAS) * (micros() - tempo_atual) / 1000000; //era pra ser uma subtração, mas aqui as velocidades são sempre positivas
+  }
   tempo_atual = micros();
 }
 
 void andando() {
-  distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  if (primeira_vez++ != 0){
+    distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+  }
   tempo_atual = micros();
   //  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
   //  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
@@ -335,12 +343,17 @@ void andando() {
 }
 
 void funcao_estado_principal() {
-  if (distancia_mm <= 50) {
+  if (distancia_mm <= 70) {
     // OBSTACULO DETECTADO
     // DESVIAR
-    angulo_restante = NOVENTA;
-    estado_atual = ESTADO_OBSTACULO_PASSO_1;
+    tempo_restante = 350000;
+    estado_atual = ESTADO_OBSTACULO_PASSO_0;
+//    angulo_restante = NOVENTA;
+//    estado_atual = ESTADO_OBSTACULO_PASSO_1;
   }
+#if TESTE_OBSTACULO == 1
+  andar_frente();
+#endif
 #if TESTE_OBSTACULO == 0
   if (cor[C2] == preto) {
     if (cor[C1] == preto && cor[C3] == preto && movimento == andando_frente) {
@@ -448,8 +461,10 @@ void funcao_obstaculo_passo_1() {
   virar_esquerda_acentuada();
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 200; //milímetros
-    estado_atual = ESTADO_OBSTACULO_PASSO_2;
+    distancia_restante = 250; //milímetros
+//    estado_atual = ESTADO_OBSTACULO_PASSO_2;
+    proximo_estado = ESTADO_OBSTACULO_PASSO_2;
+    estado_atual = ESTADO_
   }
 }
 
@@ -466,7 +481,7 @@ void funcao_obstaculo_passo_3() {
   virar_direita_acentuada();
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 300; //milímetros
+    distancia_restante = 250; //milímetros
     estado_atual = ESTADO_OBSTACULO_PASSO_4;
   }
 }
@@ -484,7 +499,7 @@ void funcao_obstaculo_passo_5() {
   virar_direita_acentuada();
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 200; //milímetros
+    distancia_restante = 250; //milímetros
     estado_atual = ESTADO_OBSTACULO_PASSO_6;
   }
 }
@@ -506,6 +521,29 @@ void funcao_obstaculo_passo_7() {
   }
 }
 
+void funcao_obstaculo_passo_0(){
+  nao_virar_nada();
+  if (primeira_vez++ != 0){
+    tempo_restante -= micros() - tempo_atual;
+  }
+  tempo_atual = micros();
+  if (tempo_restante <= 0){
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_OBSTACULO_PASSO_1;
+  }
+}
+
+void funcao_pausa_proximo(){
+  nao_virar_nada();
+  if (primeira_vez++ != 0){
+    tempo_restante -= micros() - tempo_atual;
+  }
+  tempo_atual = micros();
+  if (tempo_restante <= 0){
+    estado_atual = proximo_estado;
+  }
+}
+
 void (*funcoes[])() = {
   funcao_estado_principal,
   funcao_girando_horario_angulo,
@@ -521,7 +559,8 @@ void (*funcoes[])() = {
   funcao_obstaculo_passo_4,
   funcao_obstaculo_passo_5,
   funcao_obstaculo_passo_6,
-  funcao_obstaculo_passo_7
+  funcao_obstaculo_passo_7,
+  funcao_obstaculo_passo_0
 };
 
 void setup() {
@@ -606,6 +645,7 @@ void debug_led_3() {
   digitalWrite(27, 1);
 }
 
+Estado estado_anterior = ESTADO_TESTE;
 #define comprimento_verde 20
 void loop() {
   cont++;
@@ -625,6 +665,11 @@ void loop() {
 //    attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_fim_contagem, FALLING);
 //    tempo_distancia = micros();
   }
+
+  if (estado_anterior != estado_atual){
+    primeira_vez = 0;
+  }
+  estado_anterior = estado_atual;
 
   //parte de teste, retirar depois
   //  if (estado_atual == ESTADO_PRINCIPAL || estado_atual == ESTADO_TESTE) {
