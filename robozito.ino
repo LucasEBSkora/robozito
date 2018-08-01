@@ -2,22 +2,34 @@
 
 const bool debug = false;
 
-#define preto      0
-#define branco     1
+#define preto  0
+#define branco 1
+#define verde  2
+#define E2     0
+#define EC2    1
+#define EC3    2
+#define C1     3
+#define C2     4
+#define C3     5
+#define DC2    6
+#define DC3    7
+#define D2     8
 
-#define E2  0
-#define E3  1
-#define E4  2
-#define EC2 3
-#define EC3 4
-#define C1  5
-#define C2  6
-#define C3  7
-#define DC2 8
-#define DC3 9
-#define D2  10
-#define D3  11
-#define D4  12
+#define EVC 0
+#define EVS 1
+#define DVC 2
+#define DVS 3
+#define E 0
+#define D 1
+//                             EVC  EVS  DVC DVS
+const int sensores_verde[4] = {A13, A14, A3, A4};
+//                          E     D
+const uint8_t min_verde_R[2] = { 175, 175};
+const uint8_t min_verde_G[2] = { 50 , 50};
+const uint8_t max_verde_R[2] = { 190, 190};
+const uint8_t max_verde_G[2] = { 65, 65};
+int leitura_verde[2], leitura_vermelho[2];
+uint8_t cor_sensor_verde[2];
 
 #define virar_normal -1
 #define ir_frente 0
@@ -27,10 +39,10 @@ const bool debug = false;
 
 #define n_leituras 5
 
-//                          E2   E3   E4   EC2  EC3  C1   C2   C3   DC2  DC3  D2   D3   D4
-const int sensor[13] =     {A5, A13, A14, A12, A11, A10, A9,  A8,  A7,  A6,  A15,  A4,  A3};
-const int min_preto[13]  = {700, 750, 750, 650, 650, 600, 550, 750, 650, 650, 700, 750, 750};
-int cor[13], medicao[13], nova_cor[13], indice_mudar[13];
+//                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
+const int sensor[9] =     {A5,  A12, A11, A10, A9,  A8,  A7,  A6,  A15 };
+const int min_preto[9]  = {700, 650, 650, 600, 550, 750, 650, 650, 700 };
+int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
 #define Kp 0.7
@@ -280,13 +292,10 @@ void debug_led() {
   digitalWrite(32, cor[EC2]);
   digitalWrite(30, cor[D2]);
   digitalWrite(23, cor[DC2]);
-  digitalWrite(29, cor[E3]);
   digitalWrite(33, cor[EC3]);
   digitalWrite(25, cor[C3]);
   digitalWrite(26, cor[DC3]);
-  digitalWrite(28, cor[D3]);
-  digitalWrite(24, cor[E4]);
-  digitalWrite(27, cor[D4]);
+
 }
 
 #define comprimento_verde 20
@@ -376,11 +385,6 @@ void loop() {
     Serial.print(" ");
     Serial.println(cor[D2]);
 
-    Serial.print("  ");
-    Serial.print(medicao[E3]);
-    Serial.print(" ");
-    Serial.print(cor[E3]);
-    Serial.print("  ");
     Serial.print(medicao[EC3]);
     Serial.print(" ");
     Serial.print(cor[EC3]);
@@ -393,18 +397,7 @@ void loop() {
     Serial.print(" ");
     Serial.print(cor[DC3]);
     Serial.print("  ");
-    Serial.print(medicao[D3]);
-    Serial.print(" ");
-    Serial.println(cor[D3]);
 
-    Serial.print("  ");
-    Serial.print(medicao[E4]);
-    Serial.print(" ");
-    Serial.print(cor[E4]);
-    Serial.print("                       ");
-    Serial.print(medicao[D4]);
-    Serial.print(" ");
-    Serial.println(cor[D4]);
 
     Serial.println(cont);
     //Serial.println(modo);
@@ -416,7 +409,7 @@ void loop() {
 }
 
 void atualizar_sensores_cor() {
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < 9; i++) {
     medicao[i] = analogRead(sensor[i]);
     if (medicao[i] > min_preto[i]) {
       if (cor[i] == preto) {
@@ -449,15 +442,37 @@ void atualizar_sensores_cor() {
       }
     }
   }
+  #define VERDE HIGH
+  #define VERMELHO LOW
+  digitalWrite(EVC,VERDE);
+  digitalWrite(DVC,VERDE);
+  leitura_verde[E] = pulseIn(EVS, digitalRead(EVS) == HIGH ? LOW : HIGH);
+  digitalWrite(EVC,VERMELHO);
+  leitura_verde[D] = pulseIn(DVS, digitalRead(DVS) == HIGH ? LOW : HIGH);
+  digitalWrite(DVC,VERMELHO);
+  leitura_vermelho[E] = pulseIn(EVS, digitalRead(EVS) == HIGH ? LOW : HIGH);
+  digitalWrite(DVC,VERMELHO);
+  leitura_vermelho[E] = pulseIn(EVS, digitalRead(EVS) == HIGH ? LOW : HIGH);
+  for(int i = 0; i<2;i++){
+    if (leitura_verde[i] < min_verde_G[i] && leitura_vermelha[i] < min_verde_R[i]) cor_sensor_verde[i] = branco;
+    else if (leitura_verde[i] < max_verde_G[i] && leitura_vermelha[i] < max_verde_R[i]) cor_sensor_verde[i] = verde;
+    else if (leitura_verde[i] > max_verde_G[i] && leitura_vermelha[i] > max_verde_R[i]) cor_sensor_verde[i] = preto;
+  }
+    
 }
 
 void configurar_sensores_cor() { //os parâmetros indicam em que cor o sensor vai estar quando o programa começar
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < 9; i++) {
     cor[i] = branco;
     nova_cor[i] = cor[i];
     pinMode(sensor[i], INPUT);
     indice_mudar[i] = 0;
   }
+  pinMode(sensores_verde[EVC], OUTPUT);
+  pinMode(sensores_verde[EVS], INPUT);
+  pinMode(sensores_verde[DVC], OUTPUT);
+  pinMode(sensores_verde[DVS], INPUT);
+
 }
 
 
