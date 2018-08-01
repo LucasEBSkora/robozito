@@ -327,9 +327,9 @@ void loop() {
   }
   else {
     if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == ir_frente) {
-      if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
-      else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
-      else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) virar_direita_verde();
+      if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde) meia_volta();
+      else if (cor_sensor_verde[E] == verde) virar_esquerda_verde();
+      else if (cor_sensor_verde[D]) virar_direita_verde();
     }
     else if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) andar_frente();
     if (cor[C1] == branco) {
@@ -454,9 +454,9 @@ void atualizar_sensores_cor() {
   digitalWrite(DVC,VERMELHO);
   leitura_vermelho[E] = pulseIn(EVS, digitalRead(EVS) == HIGH ? LOW : HIGH);
   for(int i = 0; i<2;i++){
-    if (leitura_verde[i] < min_verde_G[i] && leitura_vermelha[i] < min_verde_R[i]) cor_sensor_verde[i] = branco;
-    else if (leitura_verde[i] < max_verde_G[i] && leitura_vermelha[i] < max_verde_R[i]) cor_sensor_verde[i] = verde;
-    else if (leitura_verde[i] > max_verde_G[i] && leitura_vermelha[i] > max_verde_R[i]) cor_sensor_verde[i] = preto;
+    if (leitura_verde[i] < min_verde_G[i] && leitura_vermelho[i] < min_verde_R[i]) cor_sensor_verde[i] = branco;
+    else if (leitura_verde[i] < max_verde_G[i] && leitura_vermelho[i] < max_verde_R[i]) cor_sensor_verde[i] = verde;
+    else if (leitura_verde[i] > max_verde_G[i] && leitura_vermelho[i] > max_verde_R[i]) cor_sensor_verde[i] = preto;
   }
     
 }
