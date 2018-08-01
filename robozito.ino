@@ -190,6 +190,7 @@ void intdt_encoder() {
 }
 
 #define TESTE_OBSTACULO 1
+#define DESVIAR_PARA_ESQUERDA 1
 
 const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
 volatile long tempo_distancia;
@@ -507,7 +508,11 @@ void funcao_teste() {
 #define PAUSA 150000
 
 void funcao_obstaculo_passo_1() {
+#if DESVIAR_PARA_ESQUERDA == 1
   virar_esquerda_acentuada();
+#else
+  virar_direita_acentudada();
+#endif
   girando();
   if (angulo_restante <= 0) {
     distancia_restante = 170; //milímetros
@@ -531,7 +536,11 @@ void funcao_obstaculo_passo_2() {
 }
 
 void funcao_obstaculo_passo_3() {
+#if DESVIAR_PARA_ESQUERDA == 1
   virar_direita_acentuada();
+#else
+  virar_esquerda_acentuada();
+#endif
   girando();
   if (angulo_restante <= 0) {
     distancia_restante = 250; //milímetros
@@ -555,7 +564,11 @@ void funcao_obstaculo_passo_4() {
 }
 
 void funcao_obstaculo_passo_5() {
+#if DESVIAR_PARA_ESQUERDA == 1
   virar_direita_acentuada();
+#else
+  virar_esquerda_acentuada();
+#endif
   girando();
   if (angulo_restante <= 0) {
     distancia_restante = 170; //milímetros
@@ -580,7 +593,11 @@ void funcao_obstaculo_passo_6() {
 }
 
 void funcao_obstaculo_passo_7() {
+#if DESVIAR_PARA_ESQUERDA == 1
   virar_esquerda_acentuada();
+#else
+  virar_direita_acentuada();
+#endif
   girando();
   if (angulo_restante <= 0) {
     estado_atual = ESTADO_PRINCIPAL;
