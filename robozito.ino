@@ -1,35 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = false;
-
-#define preto  0
-#define branco 1
-#define verde  2
-#define E2     0
-#define EC2    1
-#define EC3    2
-#define C1     3
-#define C2     4
-#define C3     5
-#define DC2    6
-#define DC3    7
-#define D2     8
-
-#define EVC 0
-#define EVS 1
-#define DVC 2
-#define DVS 3
-#define E 0
-#define D 1
-//                             EVC  EVS  DVC DVS
-const int sensores_verde[4] = {A13, A14, A3, A4};
-//                          E     D
-const uint8_t min_verde_R[2] = { 175, 175};
-const uint8_t min_verde_G[2] = { 50 , 50};
-const uint8_t max_verde_R[2] = { 190, 190};
-const uint8_t max_verde_G[2] = { 65, 65};
-int leitura_verde[2], leitura_vermelho[2];
-uint8_t cor_sensor_verde[2];
+const bool debug = true;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -52,11 +23,38 @@ enum Estado {
 };
 
 #define n_leituras 5
+#define preto  0
+#define branco 1
+#define verde  2
+#define E2     0
+#define EC2    1
+#define EC3    2
+#define C1     3
+#define C2     4
+#define C3     5
+#define DC2    6
+#define DC3    7
+#define D2     8
 
+#define EVC 0
+#define EVS 1
+#define DVC 2
+#define DVS 3
+#define E 0
+#define D 1
+//                             EVC EVS   DVC  DVS
+const int sensores_verde[4] = {A14, A15, A3, A4};
+//                              E    D
+const uint8_t min_verde_R[2] = {175, 175};
+const uint8_t min_verde_G[2] = {50 , 50};
+const uint8_t max_verde_R[2] = {190, 190};
+const uint8_t max_verde_G[2] = {65 , 65};
+int leitura_verde[2], leitura_vermelho[2];
+uint8_t cor_sensor_verde[2];
 
-//                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
-const int sensor[9] =     {A5,  A12, A11, A10, A9,  A8,  A7,  A6,  A15 };
-const int min_preto[9]  = {700, 650, 650, 600, 550, 750, 650, 650, 700 };
+//                          E2  EC2   EC3  C1   C2   C3   DC2  DC3  D2
+const int sensor[9] =     {A13,  A12, A11, A10, A9,  A8,  A7,  A6,  A5  };
+const int min_preto[9]  = {800, 500, 700, 700, 600, 700, 680, 650, 700 };
 int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -189,8 +187,9 @@ void intdt_encoder() {
   motor_dt.v_real = motor_dt.calc_velocidade();
 }
 
-#define TESTE_OBSTACULO 1
+#define TESTE_OBSTACULO 0
 #define DESVIAR_PARA_ESQUERDA 1
+#define SEM_ULTRASSOM 1
 
 const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
 volatile long tempo_distancia;
@@ -412,7 +411,7 @@ void funcao_estado_principal() {
     if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
     else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
     }*/
-  if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == ir_frente) {
+  if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == andando_frente) {
     if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde) {
       // VERDE DOS DOIS LADOS DETECTADO
       angulo_restante = NOVENTA * 2;
@@ -439,7 +438,7 @@ void funcao_estado_principal() {
     else if (cor[EC2] == preto) virar_esquerda_media();
     else if (cor[DC2] == preto) virar_direita_media();
   }
-  else if (movimento == ir_frente) {
+  else if (movimento == andando_frente) {
     if (cor[DC3] == preto ) virar_esquerda_suave();
     else if (cor[EC3] == preto) virar_direita_suave();
   }
@@ -655,7 +654,10 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(motor_dt.pino_encoder), intdt_encoder, RISING);
 
   //  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
+#if SEM_ULTRASSOM == 1
+#else
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_mudanca_ultrassom, CHANGE);
+#endif
 
   configurar_sensores_cor();
   if (debug) Serial.begin(115200);
@@ -694,7 +696,7 @@ void debug_led() {
 
 }
 
-void debug_led_2() {
+/*void debug_led_2() {
   digitalWrite(34, 0);
   digitalWrite(35, 0);
   digitalWrite(31, 0);
@@ -724,7 +726,7 @@ void debug_led_3() {
   digitalWrite(28, 1);
   digitalWrite(24, 1);
   digitalWrite(27, 1);
-}
+}*/
 
 Estado estado_anterior = ESTADO_TESTE;
 #define comprimento_verde 20
@@ -835,7 +837,7 @@ void loop() {
   */
 
 
-  if (millis() % 1000 <= 1 && debug) {
+  if (millis() % 250 <= 1 && debug) {
     noInterrupts();
     /*Serial.println(motor_ef.v_real);
       Serial.println(motor_df.v_real);
@@ -844,10 +846,13 @@ void loop() {
 
       Serial.println();
     */
+#if SEM_ULTRASSOM == 1
+#else
     Serial.print("medicao atual = ");
     Serial.print(distancia_mm);
     Serial.println(" milimetros");
     Serial.println(contando);
+#endif
 
 #if TESTE_OBSTACULO == 0
     Serial.print("                ");
@@ -876,6 +881,7 @@ void loop() {
     Serial.print(" ");
     Serial.println(cor[D2]);
 
+    Serial.print("         ");
     Serial.print(medicao[EC3]);
     Serial.print(" ");
     Serial.print(cor[EC3]);
@@ -887,11 +893,21 @@ void loop() {
     Serial.print(medicao[DC3]);
     Serial.print(" ");
     Serial.print(cor[DC3]);
-    Serial.print("  ");
+    Serial.println("  ");
 
+    Serial.print(leitura_verde[E]);
+    Serial.print(" ");
+    Serial.print(leitura_vermelho[E]);
+    Serial.print(" ");
+    Serial.print(cor_sensor_verde[E]);
+    Serial.print("                      ");
+    Serial.print(leitura_verde[D]);
+    Serial.print(" ");
+    Serial.print(leitura_vermelho[D]);
+    Serial.print(" ");
+    Serial.println(cor_sensor_verde[D]);
 
     Serial.println(cont);
-    //Serial.println(modo);
     Serial.println(" ");
 #endif
     cont = 0;
@@ -935,15 +951,15 @@ void atualizar_sensores_cor() {
   }
 #define VERDE HIGH
 #define VERMELHO LOW
-  digitalWrite(EVC, VERDE);
-  digitalWrite(DVC, VERDE);
-  leitura_verde[E] = pulseIn(EVS, digitalRead(EVS) == HIGH ? LOW : HIGH);
-  digitalWrite(EVC, VERMELHO);
-  leitura_verde[D] = pulseIn(DVS, digitalRead(DVS) == HIGH ? LOW : HIGH);
-  digitalWrite(DVC, VERMELHO);
-  leitura_vermelho[E] = pulseIn(EVS, digitalRead(EVS) == HIGH ? LOW : HIGH);
-  digitalWrite(DVC, VERMELHO);
-  leitura_vermelho[E] = pulseIn(EVS, digitalRead(EVS) == HIGH ? LOW : HIGH);
+#define TIMEOUT 1000
+  digitalWrite(sensores_verde[EVC], VERDE);
+  digitalWrite(sensores_verde[DVC], VERDE);
+  leitura_verde[E] = pulseIn(sensores_verde[EVS], digitalRead(sensores_verde[EVS]) == HIGH ? LOW : HIGH, TIMEOUT);
+  digitalWrite(sensores_verde[EVC], VERMELHO);
+  leitura_verde[D] = pulseIn(sensores_verde[DVS], digitalRead(sensores_verde[DVS]) == HIGH ? LOW : HIGH, TIMEOUT);
+  digitalWrite(sensores_verde[DVC], VERMELHO);
+  leitura_vermelho[E] = pulseIn(sensores_verde[EVS], digitalRead(sensores_verde[EVS]) == HIGH ? LOW : HIGH, TIMEOUT);
+  leitura_vermelho[D] = pulseIn(sensores_verde[DVS], digitalRead(sensores_verde[DVS]) == HIGH ? LOW : HIGH, TIMEOUT);
   for (int i = 0; i < 2; i++) {
     if (leitura_verde[i] < min_verde_G[i] && leitura_vermelho[i] < min_verde_R[i]) cor_sensor_verde[i] = branco;
     else if (leitura_verde[i] < max_verde_G[i] && leitura_vermelho[i] < max_verde_R[i]) cor_sensor_verde[i] = verde;
