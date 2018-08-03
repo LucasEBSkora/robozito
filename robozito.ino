@@ -67,7 +67,7 @@ int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 #define v_min 150
 #define v_max 255
 
-#define v_reto 250
+#define v_reto 300
 #define v_curva 400
 #define frente 1
 #define tras 2
@@ -278,7 +278,7 @@ void virar_direita_media() {
   motor_et.sentido(desligado);
   motor_dt.sentido(frente);
   movimento = andando_direita;
-  
+
 }
 
 void virar_esquerda_media() {
@@ -376,63 +376,21 @@ void funcao_estado_principal() {
   andar_frente();
 #endif
 #if TESTE_OBSTACULO == 0
-  /*
-    if (cor[C2] == preto) {
-
-    if (cor[C1] == preto && cor[C3] == preto && movimento == andando_frente) {
-      if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto ) {
-        // VERDE DOS DOIS LADOS DETECTADO
-        angulo_restante = NOVENTA * 2;
-        virar_esquerda_acentuada();
-        estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-      }
-      else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) {
-        // VERDE NA ESQUERDA DETECTADO
-        angulo_restante = NOVENTA;
-        virar_esquerda_acentuada();
-        estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-      }
-      else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
-        // VERDE NA DIREITA DETECTADO
-        angulo_restante = NOVENTA;
-        virar_direita_acentuada();
-        estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
-      }
-    }
-
-    else if (cor [C1] == preto || cor [C3] == preto) andar_frente();
-    }
-    if (cor[C1] == branco) {
-    if (cor[E2] == preto) virar_esquerda_acentuada();
-    else if (cor[D2] == preto) virar_direita_acentuada();
-    else if (cor[EC2] == preto) virar_esquerda_media();
-    else if (cor[DC2] == preto) virar_direita_media();
-    if (cor[E2] == branco && cor[EC2] == branco && cor[C2] == branco && cor[DC2] == branco && cor[D2] == branco) {
-      if (cor[C3] == preto) {
-        if (cor[E3] == preto || cor[EC3] == preto) virar_esquerda_acentuada();
-        else if (cor[D3] == preto || cor[DC3] == preto) virar_direita_acentuada();
-      }
-    }
-    }
-    else if (cor[C3] == branco) {
-    if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
-    else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
-    }*/
-    //DECISAO
+  //DECISAO
   if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == andando_frente) {
-    if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde) {
+    if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde && cor[D2] == preto && cor[E2] == preto) {
       // VERDE DOS DOIS LADOS DETECTADO
       angulo_restante = NOVENTA * 2;
       virar_esquerda_acentuada();
       estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
     }
-    else if (cor_sensor_verde[E] == verde) {
+    else if (cor_sensor_verde[E] == verde && cor[E2] == preto) {
       // VERDE NA ESQUERDA DETECTADO
       angulo_restante = NOVENTA;
       virar_esquerda_acentuada();
       estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
     }
-    else if (cor_sensor_verde[D] == verde) {
+    else if (cor_sensor_verde[D] == verde && cor[D2] == preto) {
       // VERDE NA DIREITA DETECTADO
       angulo_restante = NOVENTA;
       virar_direita_acentuada();
@@ -718,9 +676,9 @@ void debug_led() {
   digitalWrite(28, 0);
   digitalWrite(24, 0);
   digitalWrite(27, 0);
-}
+  }
 
-void debug_led_3() {
+  void debug_led_3() {
   digitalWrite(34, 1);
   digitalWrite(35, 1);
   digitalWrite(31, 1);
@@ -734,7 +692,7 @@ void debug_led_3() {
   digitalWrite(28, 1);
   digitalWrite(24, 1);
   digitalWrite(27, 1);
-}*/
+  }*/
 
 Estado estado_anterior = ESTADO_TESTE;
 #define comprimento_verde 20
@@ -919,11 +877,11 @@ void loop() {
     Serial.print(" ");
     Serial.println(motor_df.sent);
 
-    
+
     Serial.print(motor_et.sent);
     Serial.print(" ");
     Serial.println(motor_dt.sent);
-    
+
     Serial.println(cont);
     Serial.println(" ");
 #endif
@@ -980,7 +938,7 @@ void atualizar_sensores_cor() {
   for (int i = 0; i < 2; i++) {
     if (leitura_verde[i] < max_verde_G[i] && leitura_verde[i] > min_verde_G[i] && leitura_vermelho[i] > min_verde_R[i]) cor_sensor_verde[i] = verde;
     else cor_sensor_verde[i] = branco;
-    }
+  }
 
 }
 
