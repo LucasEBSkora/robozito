@@ -1,6 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = true;
+const bool debug = false;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -54,7 +54,7 @@ uint8_t cor_sensor_verde[2];
 
 //                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
 const int sensor[9]     = {A13, A12, A11, A10, A9,  A8,  A7,  A6,  A5 };
-const int min_preto[9]  = {800, 600, 730, 600, 600, 700, 680, 730, 700};
+const int min_preto[9]  = {700, 450, 600, 890, 500, 650, 670, 690, 670};
 int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -231,7 +231,7 @@ void int_mudanca_ultrassom() {
 byte movimento;
 
 void configurar_sensores_cor();
-
+#define media acentuada
 void andar_frente() {
   motor_ef.v_desejada = v_reto;
   motor_df.v_desejada = v_reto;
@@ -278,6 +278,7 @@ void virar_direita_media() {
   motor_et.sentido(desligado);
   motor_dt.sentido(frente);
   movimento = andando_direita;
+  
 }
 
 void virar_esquerda_media() {
@@ -359,6 +360,9 @@ void andando() {
 }
 
 void funcao_estado_principal() {
+#if SEM_ULTRASSOM == 1
+
+#else
   if (distancia_mm <= 85) {
     // OBSTACULO DETECTADO
     // DESVIAR
@@ -367,6 +371,7 @@ void funcao_estado_principal() {
     //    angulo_restante = NOVENTA;
     //    estado_atual = ESTADO_OBSTACULO_PASSO_1;
   }
+#endif
 #if TESTE_OBSTACULO == 1
   andar_frente();
 #endif
@@ -434,8 +439,8 @@ void funcao_estado_principal() {
       estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
     }
   }
-  else if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) andar_frente();
-  if (cor[C1] == branco) {
+  else if (cor[C2] == preto && cor[C1] == preto) andar_frente();
+  else if (cor[C1] == branco) {
     if (cor[E2] == preto) virar_esquerda_acentuada();
     else if (cor[D2] == preto) virar_direita_acentuada();
     else if (cor[EC2] == preto) virar_esquerda_media();
