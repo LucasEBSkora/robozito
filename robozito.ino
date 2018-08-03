@@ -22,7 +22,7 @@ enum Estado {
   ESTADO_PAUSA_PROXIMO
 };
 
-#define n_leituras 5
+#define n_leituras 2
 #define preto  0
 #define branco 1
 #define verde  2
@@ -45,16 +45,16 @@ enum Estado {
 //                             EVC EVS   DVC  DVS
 const int sensores_verde[4] = {A14, A15, A3, A4};
 //                              E    D
-const uint8_t min_verde_R[2] = {175, 175};
-const uint8_t min_verde_G[2] = {50 , 50};
-const uint8_t max_verde_R[2] = {190, 190};
-const uint8_t max_verde_G[2] = {65 , 65};
+const uint8_t min_verde_R[2] = {85 , 85};
+const uint8_t min_verde_G[2] = {30 , 30};
+const uint8_t max_verde_R[2] = {85 , 85};
+const uint8_t max_verde_G[2] = {42 , 42};
 int leitura_verde[2], leitura_vermelho[2];
 uint8_t cor_sensor_verde[2];
 
-//                          E2  EC2   EC3  C1   C2   C3   DC2  DC3  D2
-const int sensor[9] =     {A13,  A12, A11, A10, A9,  A8,  A7,  A6,  A5  };
-const int min_preto[9]  = {800, 500, 700, 700, 600, 700, 680, 650, 700 };
+//                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
+const int sensor[9]     = {A13, A12, A11, A10, A9,  A8,  A7,  A6,  A5 };
+const int min_preto[9]  = {800, 600, 730, 600, 600, 700, 680, 730, 700};
 int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -70,7 +70,7 @@ int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 #define v_reto 250
 #define v_curva 400
 #define frente 1
-#define tras -1
+#define tras 2
 #define desligado 0
 
 #define andando_frente 1
@@ -92,8 +92,9 @@ const double DISTANCIA_ENTRE_AS_RODAS = 130; //milímetros
 
 class motor {
   public:
-    int pino_frente, pino_tras, pino_encoder, pino_pwm;
+    uint8_t pino_frente, pino_tras, pino_encoder, pino_pwm;
     double v_desejada, pwm;
+    uint8_t sent;
     volatile double v_real, diff, tempo;
     PID* pid;
     double calc_velocidade() {
@@ -122,6 +123,7 @@ class motor {
       pid->SetOutputLimits(v_min, v_max);
     }
     void sentido(int mover) {
+      sent = mover;
       switch (mover) {
         case frente :
           digitalWrite(pino_frente, HIGH);
@@ -411,6 +413,7 @@ void funcao_estado_principal() {
     if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
     else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
     }*/
+    //DECISAO
   if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == andando_frente) {
     if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde) {
       // VERDE DOS DOIS LADOS DETECTADO
@@ -438,7 +441,7 @@ void funcao_estado_principal() {
     else if (cor[EC2] == preto) virar_esquerda_media();
     else if (cor[DC2] == preto) virar_direita_media();
   }
-  else if (movimento == andando_frente) {
+  else if (movimento == andando_frente && cor[C3] == branco) {
     if (cor[DC3] == preto ) virar_esquerda_suave();
     else if (cor[EC3] == preto) virar_direita_suave();
   }
@@ -907,6 +910,15 @@ void loop() {
     Serial.print(" ");
     Serial.println(cor_sensor_verde[D]);
 
+    Serial.print(motor_ef.sent);
+    Serial.print(" ");
+    Serial.println(motor_df.sent);
+
+    
+    Serial.print(motor_et.sent);
+    Serial.print(" ");
+    Serial.println(motor_dt.sent);
+    
     Serial.println(cont);
     Serial.println(" ");
 #endif
@@ -961,10 +973,9 @@ void atualizar_sensores_cor() {
   leitura_vermelho[E] = pulseIn(sensores_verde[EVS], digitalRead(sensores_verde[EVS]) == HIGH ? LOW : HIGH, TIMEOUT);
   leitura_vermelho[D] = pulseIn(sensores_verde[DVS], digitalRead(sensores_verde[DVS]) == HIGH ? LOW : HIGH, TIMEOUT);
   for (int i = 0; i < 2; i++) {
-    if (leitura_verde[i] < min_verde_G[i] && leitura_vermelho[i] < min_verde_R[i]) cor_sensor_verde[i] = branco;
-    else if (leitura_verde[i] < max_verde_G[i] && leitura_vermelho[i] < max_verde_R[i]) cor_sensor_verde[i] = verde;
-    else if (leitura_verde[i] > max_verde_G[i] && leitura_vermelho[i] > max_verde_R[i]) cor_sensor_verde[i] = preto;
-  }
+    if (leitura_verde[i] < max_verde_G[i] && leitura_verde[i] > min_verde_G[i] && leitura_vermelho[i] > min_verde_R[i]) cor_sensor_verde[i] = verde;
+    else cor_sensor_verde[i] = branco;
+    }
 
 }
 
