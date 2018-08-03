@@ -1,6 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = false;
+const bool debug = true;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -67,8 +67,8 @@ int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 #define v_min 150
 #define v_max 255
 
-#define v_reto 300
-#define v_curva 400
+#define v_reto 200
+#define v_curva 350
 #define frente 1
 #define tras 2
 #define desligado 0
@@ -191,12 +191,12 @@ void intdt_encoder() {
 
 #define TESTE_OBSTACULO 0
 #define DESVIAR_PARA_ESQUERDA 1
-#define SEM_ULTRASSOM 1
+#define SEM_ULTRASSOM 0
 
 const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
 volatile long tempo_distancia;
-volatile float distancia_mm;
-volatile int contando;
+volatile float distancia_mm = 200;
+volatile int contando = 0;
 
 //void int_inicio_contagem() {
 //  //  if (contando){
@@ -359,6 +359,9 @@ void andando() {
   //  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
+bool virando = false;
+bool quase = false;
+
 void funcao_estado_principal() {
 #if SEM_ULTRASSOM == 1
 
@@ -376,38 +379,102 @@ void funcao_estado_principal() {
   andar_frente();
 #endif
 #if TESTE_OBSTACULO == 0
+  /*
+    if (cor[C2] == preto) {
+
+    if (cor[C1] == preto && cor[C3] == preto && movimento == andando_frente) {
+      if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto ) {
+        // VERDE DOS DOIS LADOS DETECTADO
+        angulo_restante = NOVENTA * 2;
+        virar_esquerda_acentuada();
+        estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+      }
+      else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) {
+        // VERDE NA ESQUERDA DETECTADO
+        angulo_restante = NOVENTA;
+        virar_esquerda_acentuada();
+        estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+      }
+      else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
+        // VERDE NA DIREITA DETECTADO
+        angulo_restante = NOVENTA;
+        virar_direita_acentuada();
+        estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
+      }
+    }
+
+    else if (cor [C1] == preto || cor [C3] == preto) andar_frente();
+    }
+    if (cor[C1] == branco) {
+    if (cor[E2] == preto) virar_esquerda_acentuada();
+    else if (cor[D2] == preto) virar_direita_acentuada();
+    else if (cor[EC2] == preto) virar_esquerda_media();
+    else if (cor[DC2] == preto) virar_direita_media();
+    if (cor[E2] == branco && cor[EC2] == branco && cor[C2] == branco && cor[DC2] == branco && cor[D2] == branco) {
+      if (cor[C3] == preto) {
+        if (cor[E3] == preto || cor[EC3] == preto) virar_esquerda_acentuada();
+        else if (cor[D3] == preto || cor[DC3] == preto) virar_direita_acentuada();
+      }
+    }
+    }
+    else if (cor[C3] == branco) {
+    if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
+    else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
+    }*/
   //DECISAO
   if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == andando_frente) {
-    if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde && cor[D2] == preto && cor[E2] == preto) {
+    /*if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde) {
       // VERDE DOS DOIS LADOS DETECTADO
       angulo_restante = NOVENTA * 2;
       virar_esquerda_acentuada();
       estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
     }
-    else if (cor_sensor_verde[E] == verde && cor[E2] == preto) {
+    else if (cor_sensor_verde[E] == verde) {
       // VERDE NA ESQUERDA DETECTADO
       angulo_restante = NOVENTA;
       virar_esquerda_acentuada();
       estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
     }
-    else if (cor_sensor_verde[D] == verde && cor[D2] == preto) {
+    else if (cor_sensor_verde[D] == verde) {
       // VERDE NA DIREITA DETECTADO
       angulo_restante = NOVENTA;
       virar_direita_acentuada();
       estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
+    }*/
+  } else if (virando) {
+    if (cor[C1] == preto) {
+      quase = true;
+    } else if ((movimento == andando_direita && cor[EC2] == preto) ||
+               (movimento == andando_esquerda && cor[DC2] == preto)) {
+      quase = false;
+      virando = false;
+      andar_frente();
     }
   }
   else if (cor[C2] == preto && cor[C1] == preto) andar_frente();
-  else if (cor[C1] == branco) {
-    if (cor[E2] == preto) virar_esquerda_acentuada();
-    else if (cor[D2] == preto) virar_direita_acentuada();
-    else if (cor[EC2] == preto) virar_esquerda_media();
-    else if (cor[DC2] == preto) virar_direita_media();
+  else if (cor[C1] == branco && movimento == andando_frente) {
+    if (cor[E2] == preto) {
+      virar_esquerda_acentuada();
+      virando = true;
+    }
+    else if (cor[D2] == preto) {
+      virar_direita_acentuada();
+      virando = true;
+    }
+    else if (cor[EC2] == preto) {
+      virar_esquerda_acentuada();
+      virando = true;
+    }
+    else if (cor[DC2] == preto) {
+      virar_direita_acentuada();
+      virando = true;
+    }
+    else if (movimento == andando_frente && cor[C3] == branco) {
+      //if (cor[DC3] == preto ) virar_esquerda_suave();
+      //else if (cor[EC3] == preto) virar_direita_suave();
+    }
   }
-  else if (movimento == andando_frente && cor[C3] == branco) {
-    if (cor[DC3] == preto ) virar_esquerda_suave();
-    else if (cor[EC3] == preto) virar_direita_suave();
-  }
+
 #endif
 }
 
