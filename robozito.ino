@@ -64,7 +64,7 @@ int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 #define Ki 0.05
 #define Kd 0.03
 
-#define NOVENTA ( 3.1415926535 * 0.55 )
+#define NOVENTA ( 3.1415926535 * 0.45 )
 
 #define v_min 150
 #define v_max 255
@@ -197,7 +197,7 @@ void intdt_encoder() {
 
 #define TESTE_OBSTACULO 0
 #define DESVIAR_PARA_ESQUERDA 0
-#define SEM_ULTRASSOM 1
+#define SEM_ULTRASSOM 0
 
 const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
 volatile long tempo_distancia;
