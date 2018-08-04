@@ -1,7 +1,7 @@
 #include <PID_v1.h>
 
-const bool debug = true;
-const bool debug_verde = false;
+const bool debug = false;
+const bool debug_verde = true;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -64,7 +64,7 @@ int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 #define Ki 0.05
 #define Kd 0.03
 
-#define NOVENTA ( 3.1415926535 * 0.45 )
+#define NOVENTA ( 3.1415926535 * 0.55 )
 
 #define v_min 150
 #define v_max 255
@@ -104,7 +104,7 @@ class motor {
     }
 
     void atualizar_pwm() {
-      if (v_real > 500) {
+      if (v_real > 550) {
         v_real = 0;
         pwm = 255;
       }
@@ -456,18 +456,14 @@ void funcao_estado_principal() {
   else {
     vendo_verde = false;
     if (virando) {
-      if (!quase && cor[C1] == preto) {
+      if (cor[C1] == preto) {
         quase = false;
         virando = false;
-        //quase = true;
-      } else if (quase && cor[C2] == preto) {
+      } else if (cor[C2] == preto) {
         quase = false;
         virando = false;
         andar_frente();
       }
-    }
-    else if (cor[C1] == branco && cor[E2] == branco && cor[EC2] == branco && cor[C2] == branco && cor[DC2] == branco && cor[D2] == branco) {
-      andar_frente;
     }
     else if (cor[C2] == preto && cor[C3] == preto) andar_frente();
     else if (cor[C1] == branco && movimento == andando_frente) {
@@ -481,21 +477,15 @@ void funcao_estado_principal() {
       else if (cor[D2] == preto && cor[DC3] == preto) {
         virar_direita_acentuada();
         virando = true;
-      }/*
-      else if (cor[EC2] == preto) {
-        virar_esquerda_suave();
       }
-      else if (cor[DC2] == preto) {
-        virar_direita_suave();
-      } *//*
-      else if (cor[E2] == preto) {
+      /*else if (cor[EC2] == preto) {
         virar_esquerda_acentuada();
         virando = true;
-      }
-      else if (cor[D2] == preto) {
+        }
+        else if (cor[DC2] == preto) {
         virar_direita_acentuada();
         virando = true;
-      }*/
+        }*/
       else if (movimento == andando_frente && cor[C3] == branco) {
         //if (cor[DC3] == preto ) virar_esquerda_suave();
         //else if (cor[EC3] == preto) virar_direita_suave();
