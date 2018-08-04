@@ -1,7 +1,7 @@
 #include <PID_v1.h>
 
 const bool debug = false;
-const bool debug_verde = true;
+const bool debug_verde = false;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -64,7 +64,7 @@ int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 #define Ki 0.05
 #define Kd 0.03
 
-#define NOVENTA ( 3.1415926535 * 0.45 )
+#define NOVENTA ( 3.1415926535 * 0.35 )
 
 #define v_min 150
 #define v_max 255
@@ -374,7 +374,7 @@ void funcao_estado_principal() {
 #if SEM_ULTRASSOM == 1
 
 #else
-  if (distancia_mm <= 85) {
+  if (distancia_mm <= 68) {
     // OBSTACULO DETECTADO
     // DESVIAR
     tempo_restante = 350000;
@@ -560,7 +560,7 @@ void funcao_obstaculo_passo_1() {
 #endif
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 170; //milímetros
+    distancia_restante = 85; //milímetros
     //    estado_atual = ESTADO_OBSTACULO_PASSO_2;
     tempo_restante = PAUSA;
     proximo_estado = ESTADO_OBSTACULO_PASSO_2;
@@ -588,7 +588,7 @@ void funcao_obstaculo_passo_3() {
 #endif
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 250; //milímetros
+    distancia_restante = 150; //milímetros
     //    estado_atual = ESTADO_OBSTACULO_PASSO_4;
     tempo_restante = PAUSA;
     proximo_estado = ESTADO_OBSTACULO_PASSO_4;
@@ -616,7 +616,7 @@ void funcao_obstaculo_passo_5() {
 #endif
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 170; //milímetros
+    distancia_restante = 85; //milímetros
     //    estado_atual = ESTADO_OBSTACULO_PASSO_6;
     tempo_restante = PAUSA;
     proximo_estado = ESTADO_OBSTACULO_PASSO_6;
