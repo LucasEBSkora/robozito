@@ -1,6 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = false;
+const bool debug = true;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -398,16 +398,16 @@ void funcao_estado_principal() {
     //tempo_restante = 200000;
     //estado_atual = ESTADO_PAUSA_PROXIMO;
     //proximo_estado = ESTADO_VERIFICA_VERDE;
-    angulo_restante = NOVENTA;
-    estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+    distancia_restante = 35; //milímetros
+    estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
   }
   else if (cor_sensor_verde[D] == verde && cor[D2] == preto && cor[DC3] == preto) {
     // VERDE NA DIREITA DETECTADO
     //tempo_restante = 200000;
     //estado_atual = ESTADO_PAUSA_PROXIMO;
     //proximo_estado = ESTADO_VERIFICA_VERDE;
-    angulo_restante = NOVENTA;
-    estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
+    distancia_restante = 35; //milímetros
+    estado_atual = ESTADO_PROCEDIMENTO_VERDE_DIREITA;
   }
   else if (virando) {
     if (cor[C1] == preto) {
@@ -482,12 +482,7 @@ void funcao_procedimento_verde_esquerda() {
   andando();
   if (distancia_restante <= 0) {
     angulo_restante = NOVENTA;
-    virar_esquerda_acentuada();
     estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-    //    motor_ef.v_desejada = v_desejada_final;
-    //    motor_df.v_desejada = v_desejada_final;
-    //    motor_et.v_desejada = v_desejada_final;
-    //    motor_dt.v_desejada = v_desejada_final;
   }
 }
 
@@ -495,12 +490,7 @@ void funcao_procedimento_verde_direita() {
   andando();
   if (distancia_restante <= 0) {
     angulo_restante = NOVENTA;
-    virar_direita_acentuada();
     estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
-    //    motor_ef.v_desejada = v_desejada_final;
-    //    motor_df.v_desejada = v_desejada_final;
-    //    motor_et.v_desejada = v_desejada_final;
-    //    motor_dt.v_desejada = v_desejada_final;
   }
 }
 
