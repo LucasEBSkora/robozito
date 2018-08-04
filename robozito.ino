@@ -1,6 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = false;
+const bool debug = true;
 const bool debug_verde = false;
 
 enum Estado {
@@ -457,9 +457,9 @@ void funcao_estado_principal() {
     vendo_verde = false;
     if (virando) {
       if (!quase && cor[C1] == preto) {
-        //quase = false;
-        //virando = false;
-        quase = true;
+        quase = false;
+        virando = false;
+        //quase = true;
       } else if (quase && cor[C2] == preto) {
         quase = false;
         virando = false;
@@ -487,7 +487,7 @@ void funcao_estado_principal() {
       }
       else if (cor[DC2] == preto) {
         virar_direita_suave();
-      } */
+      } *//*
       else if (cor[E2] == preto) {
         virar_esquerda_acentuada();
         virando = true;
@@ -495,7 +495,7 @@ void funcao_estado_principal() {
       else if (cor[D2] == preto) {
         virar_direita_acentuada();
         virando = true;
-      }
+      }*/
       else if (movimento == andando_frente && cor[C3] == branco) {
         //if (cor[DC3] == preto ) virar_esquerda_suave();
         //else if (cor[EC3] == preto) virar_direita_suave();
