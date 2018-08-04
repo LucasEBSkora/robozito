@@ -457,8 +457,9 @@ void funcao_estado_principal() {
     vendo_verde = false;
     if (virando) {
       if (cor[C1] == preto) {
-        quase = false;
-        virando = false;
+        //quase = false;
+        //virando = false;
+        quase = true;
       } else if (cor[C2] == preto) {
         quase = false;
         virando = false;
@@ -468,7 +469,7 @@ void funcao_estado_principal() {
     else if (cor[C1] == branco && cor[E2] == branco && cor[EC2] == branco && cor[C2] == branco && cor[DC2] == branco && cor[D2] == branco) {
       andar_frente;
     }
-    else if (cor[C2] == preto && cor[C3] == preto) andar_frente();
+    else if (cor[C2] == preto && cor[C1] == preto) andar_frente();
     else if (cor[C1] == branco && movimento == andando_frente) {
       if (cor[E2] == preto && cor[D2] == preto) {
         andar_frente();
@@ -489,9 +490,11 @@ void funcao_estado_principal() {
       } 
       else if (cor[E2] == preto) {
         virar_esquerda_acentuada();
+        virando = true;
       }
       else if (cor[D2] == preto) {
         virar_direita_acentuada();
+        virando = true;
       }
       else if (movimento == andando_frente && cor[C3] == branco) {
         //if (cor[DC3] == preto ) virar_esquerda_suave();
