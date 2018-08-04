@@ -1,6 +1,7 @@
 #include <PID_v1.h>
 
-const bool debug = true;
+const bool debug = false;
+const bool debug_verde = true;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -46,10 +47,10 @@ enum Estado {
 //                             EVC EVS   DVC  DVS
 const int sensores_verde[4] = {A14, A15, A3, A4};
 //                              E    D
-const uint8_t min_verde_R[2] = {75 , 80};
-const uint8_t min_verde_G[2] = {25 , 25};
+const uint8_t min_verde_R[2] = {80 , 80};
+const uint8_t min_verde_G[2] = {20 , 20};
 const uint8_t max_verde_R[2] = {200 , 200};
-const uint8_t max_verde_G[2] = {250 , 250};
+const uint8_t max_verde_G[2] = {40 , 40};
 int leitura_verde[2], leitura_vermelho[2];
 uint8_t cor_sensor_verde[2];
 
@@ -366,6 +367,7 @@ void andando() {
 
 bool virando = false;
 bool quase = false;
+bool vendo_verde = false;
 
 void funcao_estado_principal() {
 #if SEM_ULTRASSOM == 1
@@ -392,57 +394,87 @@ void funcao_estado_principal() {
     //proximo_estado = ESTADO_VERIFICA_VERDE;
     angulo_restante = NOVENTA * 2;
     estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+    if (debug_verde) imprime_tudo();
   }
   else if (cor_sensor_verde[E] == verde && cor[E2] == preto && cor[EC3] == preto) {
     // VERDE NA ESQUERDA DETECTADO
     //tempo_restante = 200000;
     //estado_atual = ESTADO_PAUSA_PROXIMO;
     //proximo_estado = ESTADO_VERIFICA_VERDE;
-    distancia_restante = 35; //milímetros
-    estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
+    if (!vendo_verde) {
+      distancia_restante = 5; //milímetros
+      vendo_verde = true;
+      andar_frente();
+      tempo_atual = micros();
+    } else {
+      distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+      tempo_atual = micros();
+      if (distancia_restante <= 0) {
+        distancia_restante = 35; //milímetros
+        estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
+        if (debug_verde) imprime_tudo();
+        vendo_verde = false;
+      }
+    }
   }
   else if (cor_sensor_verde[D] == verde && cor[D2] == preto && cor[DC3] == preto) {
     // VERDE NA DIREITA DETECTADO
     //tempo_restante = 200000;
     //estado_atual = ESTADO_PAUSA_PROXIMO;
     //proximo_estado = ESTADO_VERIFICA_VERDE;
-    distancia_restante = 35; //milímetros
-    estado_atual = ESTADO_PROCEDIMENTO_VERDE_DIREITA;
-  }
-  else if (virando) {
-    if (cor[C1] == preto) {
-      quase = false;
-      virando = false;
-    } else if (cor[C2] == preto) {
-      quase = false;
-      virando = false;
+    if (!vendo_verde) {
+      distancia_restante = 5; //milímetros
+      vendo_verde = true;
       andar_frente();
-    }
-  }
-  else if (cor[C2] == preto && cor[C1] == preto) andar_frente();
-  else if (cor[C1] == branco && movimento == andando_frente) {
-    if (cor[E2] == preto && cor[D2] == preto) {
-      andar_frente();
-    }
-    else if (cor[E2] == preto && cor[EC3] == preto) {
-      virar_esquerda_acentuada();
-      virando = true;
-    }
-    else if (cor[D2] == preto && cor[DC3] == preto) {
-      virar_direita_acentuada();
-      virando = true;
-    }
-    /*else if (cor[EC2] == preto) {
-      virar_esquerda_acentuada();
-      virando = true;
+      tempo_atual = micros();
+    } else {
+      distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
+      tempo_atual = micros();
+      if (distancia_restante <= 0) {
+        distancia_restante = 35; //milímetros
+        estado_atual = ESTADO_PROCEDIMENTO_VERDE_DIREITA;
+        if (debug) imprime_tudo();
+        vendo_verde = false;
       }
-      else if (cor[DC2] == preto) {
-      virar_direita_acentuada();
-      virando = true;
-      }*/
-    else if (movimento == andando_frente && cor[C3] == branco) {
-      //if (cor[DC3] == preto ) virar_esquerda_suave();
-      //else if (cor[EC3] == preto) virar_direita_suave();
+    }
+  }
+  else {
+    vendo_verde = false;
+    if (virando) {
+      if (cor[C1] == preto) {
+        quase = false;
+        virando = false;
+      } else if (cor[C2] == preto) {
+        quase = false;
+        virando = false;
+        andar_frente();
+      }
+    }
+    else if (cor[C2] == preto && cor[C3] == preto) andar_frente();
+    else if (cor[C1] == branco && movimento == andando_frente) {
+      if (cor[E2] == preto && cor[D2] == preto) {
+        andar_frente();
+      }
+      else if (cor[E2] == preto && cor[EC3] == preto) {
+        virar_esquerda_acentuada();
+        virando = true;
+      }
+      else if (cor[D2] == preto && cor[DC3] == preto) {
+        virar_direita_acentuada();
+        virando = true;
+      }
+      /*else if (cor[EC2] == preto) {
+        virar_esquerda_acentuada();
+        virando = true;
+        }
+        else if (cor[DC2] == preto) {
+        virar_direita_acentuada();
+        virando = true;
+        }*/
+      else if (movimento == andando_frente && cor[C3] == branco) {
+        //if (cor[DC3] == preto ) virar_esquerda_suave();
+        //else if (cor[EC3] == preto) virar_direita_suave();
+      }
     }
   }
 
@@ -624,7 +656,7 @@ void funcao_pausa_proximo() {
   }
 }
 
-void funcao_verifica_verde(){
+void funcao_verifica_verde() {
   estado_atual = ESTADO_PARADO;
   return;
   if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde && cor[E2] == preto && cor[EC3] == preto && cor[D2] == preto && cor[DC3] == preto) {
@@ -682,7 +714,7 @@ void setup() {
 #endif
 
   configurar_sensores_cor();
-  if (debug) Serial.begin(115200);
+  if (debug || debug_verde) Serial.begin(115200);
   cont = 0;
   pinMode(22, OUTPUT);
   pinMode(23, OUTPUT);
@@ -718,37 +750,86 @@ void debug_led() {
 
 }
 
-/*void debug_led_2() {
-  digitalWrite(34, 0);
-  digitalWrite(35, 0);
-  digitalWrite(31, 0);
-  digitalWrite(32, 0);
-  digitalWrite(30, 0);
-  digitalWrite(23, 0);
-  digitalWrite(29, 0);
-  digitalWrite(33, 0);
-  digitalWrite(25, 0);
-  digitalWrite(26, 0);
-  digitalWrite(28, 0);
-  digitalWrite(24, 0);
-  digitalWrite(27, 0);
-  }
+void imprime_tudo() {
+  noInterrupts();
+#if SEM_ULTRASSOM == 1
+#else
+  Serial.print("medicao atual = ");
+  Serial.print(distancia_mm);
+  Serial.println(" milimetros");
+  Serial.println(contando);
+#endif
 
-  void debug_led_3() {
-  digitalWrite(34, 1);
-  digitalWrite(35, 1);
-  digitalWrite(31, 1);
-  digitalWrite(32, 1);
-  digitalWrite(30, 1);
-  digitalWrite(23, 1);
-  digitalWrite(29, 1);
-  digitalWrite(33, 1);
-  digitalWrite(25, 1);
-  digitalWrite(26, 1);
-  digitalWrite(28, 1);
-  digitalWrite(24, 1);
-  digitalWrite(27, 1);
-  }*/
+#if TESTE_OBSTACULO == 0
+  Serial.print("                ");
+  Serial.print(medicao[C1]);
+  Serial.print(" ");
+  Serial.println(cor[C1]);
+
+
+  Serial.print(medicao[E2]);
+  Serial.print(" ");
+  Serial.print(cor[E2]);
+  Serial.print("   ");
+  Serial.print(medicao[EC2]);
+  Serial.print(" ");
+  Serial.print(cor[EC2]);
+  Serial.print("   ");
+  Serial.print(medicao[C2]);
+  Serial.print(" ");
+  Serial.print(cor[C2]);
+  Serial.print("   ");
+  Serial.print(medicao[DC2]);
+  Serial.print(" ");
+  Serial.print(cor[DC2]);
+  Serial.print("   ");
+  Serial.print(medicao[D2]);
+  Serial.print(" ");
+  Serial.println(cor[D2]);
+
+  Serial.print("         ");
+  Serial.print(medicao[EC3]);
+  Serial.print(" ");
+  Serial.print(cor[EC3]);
+  Serial.print("  ");
+  Serial.print(medicao[C3]);
+  Serial.print(" ");
+  Serial.print(cor[C3]);
+  Serial.print("  ");
+  Serial.print(medicao[DC3]);
+  Serial.print(" ");
+  Serial.print(cor[DC3]);
+  Serial.println("  ");
+
+  Serial.print(leitura_verde[E]);
+  Serial.print(" ");
+  Serial.print(leitura_vermelho[E]);
+  Serial.print(" ");
+  Serial.print(cor_sensor_verde[E]);
+  Serial.print("                      ");
+  Serial.print(leitura_verde[D]);
+  Serial.print(" ");
+  Serial.print(leitura_vermelho[D]);
+  Serial.print(" ");
+  Serial.println(cor_sensor_verde[D]);
+
+  Serial.print(motor_ef.sent);
+  Serial.print(" ");
+  Serial.println(motor_df.sent);
+
+
+  Serial.print(motor_et.sent);
+  Serial.print(" ");
+  Serial.println(motor_dt.sent);
+
+  Serial.println(estado_atual);
+
+  Serial.println(cont);
+  Serial.println(" ");
+#endif
+  cont = 0;
+  interrupts();
+}
 
 Estado estado_anterior = ESTADO_TESTE;
 #define comprimento_verde 20
@@ -766,9 +847,6 @@ void loop() {
     digitalWrite(TRIGGER_PIN, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIGGER_PIN, LOW);
-    //    attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
-    //    attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_fim_contagem, FALLING);
-    //    tempo_distancia = micros();
   }
 
   if (estado_anterior != estado_atual) {
@@ -776,175 +854,10 @@ void loop() {
   }
   estado_anterior = estado_atual;
 
-  //parte de teste, retirar depois
-  //  if (estado_atual == ESTADO_PRINCIPAL || estado_atual == ESTADO_TESTE) {
-  //    /*if (millis() % 3000 == 0) { //aos sete segundos ele começa a meia volta
-  //      angulo_restante = 3.1415926535;
-  //      virar_esquerda_acentuada();
-  //      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-  //      debug_led_2();
-  //      } else */
-  //    if (millis() == 3000 || millis() == 3001 || millis() == 3002) { // aos 19 segundos ele começa a andar 30cm
-  //      /*distancia_desejada = 55; // milimetros
-  //      distancia_restante = 55; // milimetros
-  //      andar_frente();
-  //      estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
-  //      debug_led_2();*/
-  //
-  //      angulo_restante = NOVENTA;
-  //      virar_esquerda_acentuada();
-  //      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-  //      debug_led_2();
-  //    } else {
-  //      motor_ef.sentido(desligado);
-  //      motor_df.sentido(desligado);
-  //      motor_et.sentido(desligado);
-  //      motor_dt.sentido(desligado);
-  //      estado_atual = ESTADO_TESTE;
-  //      debug_led_3();
-  //      tempo_atual = micros();
-  //    }
-  //  }
-  // fim da parte de teste
-
   funcoes[estado_atual]();
 
-  /*
-    if (movimento == dar_meia_volta) {
-    comprimento_faltando_d  += motor_df.v_real * (micros() - tempo_atual) / 1000000;
-    tempo_atual = micros();
-    if (comprimento_faltando_d >= 135 * 3.14159 * 3 / 4 && cor[C2] == preto) andar_frente();
-    }
-    else if (movimento == ir_esquerda) {
-    comprimento_faltando_d  += motor_df.v_real * (micros() - tempo_atual) / 1000000;
-    tempo_atual = micros();
-    if (comprimento_faltando_d >= 135 * 3.14159 / 4 && cor[C2] == preto) andar_frente();
-    }
-    else if (movimento == ir_direita) {
-    comprimento_faltando_e += motor_ef.v_real * (micros() - tempo_atual) / 1000000;
-    tempo_atual = micros();
-    if (comprimento_faltando_e >= 135 * 3.14159 / 4 && cor[C2] == preto) andar_frente();
-    <<<<<<< HEAD
-    }
-    else {
-    if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto) {
-      if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) meia_volta();
-      else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) virar_esquerda_verde();
-      else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) virar_direita_verde();
-    =======
-
-    }
-    else {
-    if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == ir_frente) {
-      if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde) meia_volta();
-      else if (cor_sensor_verde[E] == verde) virar_esquerda_verde();
-      else if (cor_sensor_verde[D]) virar_direita_verde();
-    >>>>>>> origin/master
-    }
-    else if (cor[C2] == preto && (cor[C1] == preto || cor[C3] == preto)) andar_frente();
-    if (cor[C1] == branco) {
-      if (cor[E2] == preto) virar_esquerda_acentuada();
-      else if (cor[D2] == preto) virar_direita_acentuada();
-      else if (cor[EC2] == preto) virar_esquerda_media();
-      else if (cor[DC2] == preto) virar_direita_media();
-    }
-    else if (movimento == ir_frente) {
-      if (cor[DC3] == preto ) virar_esquerda_suave();
-      else if (cor[EC3] == preto) virar_direita_suave();
-    }
-    comprimento_faltando_e = 0;
-    comprimento_faltando_d = 0;
-    tempo_atual = micros();
-    }
-  */
-
-
-  if (millis() % 100 <= 1 && debug){// && (cor_sensor_verde[E] == verde || cor_sensor_verde[D] == verde)) {
-    noInterrupts();
-    /*Serial.println(motor_ef.v_real);
-      Serial.println(motor_df.v_real);
-      Serial.println(motor_et.v_real);
-      Serial.println(motor_dt.v_real);
-
-      Serial.println();
-    */
-#if SEM_ULTRASSOM == 1
-#else
-    Serial.print("medicao atual = ");
-    Serial.print(distancia_mm);
-    Serial.println(" milimetros");
-    Serial.println(contando);
-#endif
-
-#if TESTE_OBSTACULO == 0
-    Serial.print("                ");
-    Serial.print(medicao[C1]);
-    Serial.print(" ");
-    Serial.println(cor[C1]);
-
-
-    Serial.print(medicao[E2]);
-    Serial.print(" ");
-    Serial.print(cor[E2]);
-    Serial.print("   ");
-    Serial.print(medicao[EC2]);
-    Serial.print(" ");
-    Serial.print(cor[EC2]);
-    Serial.print("   ");
-    Serial.print(medicao[C2]);
-    Serial.print(" ");
-    Serial.print(cor[C2]);
-    Serial.print("   ");
-    Serial.print(medicao[DC2]);
-    Serial.print(" ");
-    Serial.print(cor[DC2]);
-    Serial.print("   ");
-    Serial.print(medicao[D2]);
-    Serial.print(" ");
-    Serial.println(cor[D2]);
-
-    Serial.print("         ");
-    Serial.print(medicao[EC3]);
-    Serial.print(" ");
-    Serial.print(cor[EC3]);
-    Serial.print("  ");
-    Serial.print(medicao[C3]);
-    Serial.print(" ");
-    Serial.print(cor[C3]);
-    Serial.print("  ");
-    Serial.print(medicao[DC3]);
-    Serial.print(" ");
-    Serial.print(cor[DC3]);
-    Serial.println("  ");
-
-    Serial.print(leitura_verde[E]);
-    Serial.print(" ");
-    Serial.print(leitura_vermelho[E]);
-    Serial.print(" ");
-    Serial.print(cor_sensor_verde[E]);
-    Serial.print("                      ");
-    Serial.print(leitura_verde[D]);
-    Serial.print(" ");
-    Serial.print(leitura_vermelho[D]);
-    Serial.print(" ");
-    Serial.println(cor_sensor_verde[D]);
-
-    Serial.print(motor_ef.sent);
-    Serial.print(" ");
-    Serial.println(motor_df.sent);
-
-
-    Serial.print(motor_et.sent);
-    Serial.print(" ");
-    Serial.println(motor_dt.sent);
-
-    Serial.println(estado_atual);
-
-    Serial.println(cont);
-    Serial.println(" ");
-#endif
-    cont = 0;
-    interrupts();
+  if (millis() % 100 <= 1 && debug) { // && (cor_sensor_verde[E] == verde || cor_sensor_verde[D] == verde)) {
+    imprime_tudo();
   }
 }
 
