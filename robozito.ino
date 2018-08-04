@@ -53,7 +53,7 @@ const uint8_t max_verde_R[2] = {200 , 200};
 const uint8_t max_verde_G[2] = {40 , 40};
 int leitura_verde[2], leitura_vermelho[2];
 uint8_t cor_sensor_verde[2];
-
+uint8_t indice_mudanca[2];
 //                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
 const int sensor[9]     = {A13, A12, A11, A10, A9,  A8,  A7,  A6,  A5 };
 const int min_preto[9]  = {770, 450, 690, 890, 600, 650, 670, 690, 600};
@@ -196,7 +196,7 @@ void intdt_encoder() {
 }
 
 #define TESTE_OBSTACULO 0
-#define DESVIAR_PARA_ESQUERDA 1
+#define DESVIAR_PARA_ESQUERDA 0
 #define SEM_ULTRASSOM 1
 
 const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
@@ -346,6 +346,7 @@ float distancia_desejada;
 float distancia_restante;
 long tempo_restante;
 float v_desejada_final = 250;
+int verdes_restantes = 0;
 
 void girando() {
   if (primeira_vez++ != 0) {
@@ -392,51 +393,65 @@ void funcao_estado_principal() {
     //tempo_restante = 200000;
     //estado_atual = ESTADO_PAUSA_PROXIMO;
     //proximo_estado = ESTADO_VERIFICA_VERDE;
-    angulo_restante = NOVENTA * 2;
-    estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-    if (debug_verde) imprime_tudo();
+    /*angulo_restante = NOVENTA * 2;
+      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+      if (debug_verde) imprime_tudo();*/
   }
   else if (cor_sensor_verde[E] == verde && cor[E2] == preto && cor[EC3] == preto) {
     // VERDE NA ESQUERDA DETECTADO
     //tempo_restante = 200000;
     //estado_atual = ESTADO_PAUSA_PROXIMO;
     //proximo_estado = ESTADO_VERIFICA_VERDE;
-    if (!vendo_verde) {
+    /*if (!vendo_verde) {
       distancia_restante = 5; //milímetros
       vendo_verde = true;
       andar_frente();
       tempo_atual = micros();
-    } else {
+      } else {
       distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
       tempo_atual = micros();
-      if (distancia_restante <= 0) {
+      if (distancia_restante <= 0) {*/
+    if (!vendo_verde) {
+      verdes_restantes = 15;
+      vendo_verde = true;
+    } else {
+      if (--verdes_restantes < 0) {
         distancia_restante = 35; //milímetros
         estado_atual = ESTADO_PROCEDIMENTO_VERDE_ESQUERDA;
         if (debug_verde) imprime_tudo();
-        vendo_verde = false;
       }
     }
+    /*vendo_verde = false;
+      }
+      }*/
   }
   else if (cor_sensor_verde[D] == verde && cor[D2] == preto && cor[DC3] == preto) {
     // VERDE NA DIREITA DETECTADO
     //tempo_restante = 200000;
     //estado_atual = ESTADO_PAUSA_PROXIMO;
     //proximo_estado = ESTADO_VERIFICA_VERDE;
-    if (!vendo_verde) {
+    /*if (!vendo_verde) {
       distancia_restante = 5; //milímetros
       vendo_verde = true;
       andar_frente();
       tempo_atual = micros();
-    } else {
+      } else {
       distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
       tempo_atual = micros();
-      if (distancia_restante <= 0) {
+      if (distancia_restante <= 0) {*/
+    if (!vendo_verde) {
+      verdes_restantes = 15;
+      vendo_verde = true;
+    } else {
+      if (--verdes_restantes < 0) {
         distancia_restante = 35; //milímetros
         estado_atual = ESTADO_PROCEDIMENTO_VERDE_DIREITA;
-        if (debug) imprime_tudo();
-        vendo_verde = false;
+        if (debug_verde) imprime_tudo();
       }
     }
+    /*vendo_verde = false;
+      }
+      }*/
   }
   else {
     vendo_verde = false;
@@ -540,7 +555,8 @@ void funcao_obstaculo_passo_1() {
 #if DESVIAR_PARA_ESQUERDA == 1
   virar_esquerda_acentuada();
 #else
-  virar_direita_acentudada();
+  virar_direita_acentuada();
+
 #endif
   girando();
   if (angulo_restante <= 0) {
@@ -813,6 +829,11 @@ void imprime_tudo() {
   Serial.print(" ");
   Serial.println(cor_sensor_verde[D]);
 
+  Serial.print("   ");
+  Serial.print(indice_mudanca[E]);
+  Serial.print("     ");
+  Serial.println(indice_mudanca[D]);
+
   Serial.print(motor_ef.sent);
   Serial.print(" ");
   Serial.println(motor_df.sent);
@@ -841,6 +862,8 @@ void loop() {
   motor_df.atualizar_pwm();
   motor_et.atualizar_pwm();
   motor_dt.atualizar_pwm();
+  indice_mudanca[E] = 0;
+  indice_mudanca[D] = 0;
   if (!contando && (millis() % 10 <= 0)) {
     digitalWrite(TRIGGER_PIN, LOW);
     delayMicroseconds(3);
@@ -898,6 +921,7 @@ void atualizar_sensores_cor() {
 #define VERDE HIGH
 #define VERMELHO LOW
 #define TIMEOUT 1000
+#define OVERSAMPLING 0
   digitalWrite(sensores_verde[EVC], VERDE);
   digitalWrite(sensores_verde[DVC], VERDE);
   leitura_verde[E] = pulseIn(sensores_verde[EVS], digitalRead(sensores_verde[EVS]) == HIGH ? LOW : HIGH, TIMEOUT);
@@ -907,8 +931,16 @@ void atualizar_sensores_cor() {
   leitura_vermelho[E] = pulseIn(sensores_verde[EVS], digitalRead(sensores_verde[EVS]) == HIGH ? LOW : HIGH, TIMEOUT);
   leitura_vermelho[D] = pulseIn(sensores_verde[DVS], digitalRead(sensores_verde[DVS]) == HIGH ? LOW : HIGH, TIMEOUT);
   for (int i = 0; i < 2; i++) {
-    if (leitura_verde[i] < max_verde_G[i] && leitura_verde[i] > min_verde_G[i] && leitura_vermelho[i] > min_verde_R[i] && leitura_vermelho[i] < max_verde_R[i]) cor_sensor_verde[i] = verde;
-    else cor_sensor_verde[i] = branco;
+    if (leitura_verde[i] < max_verde_G[i] && leitura_verde[i] > min_verde_G[i] && leitura_vermelho[i] > min_verde_R[i] && leitura_vermelho[i] < max_verde_R[i]) {
+      if (indice_mudanca[i] >= OVERSAMPLING) cor_sensor_verde[i] = verde;
+      else {
+        indice_mudanca[i]++;
+      }
+    }
+    else {
+      indice_mudanca[i] = 0;
+      cor_sensor_verde[i] = branco;
+    }
   }
 
 }
