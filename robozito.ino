@@ -1,6 +1,6 @@
 #include <PID_v1.h>
 
-const bool debug = true;
+const bool debug = false;
 
 enum Estado {
   ESTADO_PRINCIPAL = 0,
@@ -19,7 +19,8 @@ enum Estado {
   ESTADO_OBSTACULO_PASSO_6,
   ESTADO_OBSTACULO_PASSO_7,
   ESTADO_OBSTACULO_PASSO_0,
-  ESTADO_PAUSA_PROXIMO
+  ESTADO_PAUSA_PROXIMO,
+  ESTADO_VERIFICA_VERDE
 };
 
 #define n_leituras 2
@@ -45,16 +46,16 @@ enum Estado {
 //                             EVC EVS   DVC  DVS
 const int sensores_verde[4] = {A14, A15, A3, A4};
 //                              E    D
-const uint8_t min_verde_R[2] = {85 , 85};
-const uint8_t min_verde_G[2] = {30 , 30};
-const uint8_t max_verde_R[2] = {85 , 85};
-const uint8_t max_verde_G[2] = {42 , 42};
+const uint8_t min_verde_R[2] = {75 , 80};
+const uint8_t min_verde_G[2] = {25 , 25};
+const uint8_t max_verde_R[2] = {200 , 200};
+const uint8_t max_verde_G[2] = {250 , 250};
 int leitura_verde[2], leitura_vermelho[2];
 uint8_t cor_sensor_verde[2];
 
 //                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
 const int sensor[9]     = {A13, A12, A11, A10, A9,  A8,  A7,  A6,  A5 };
-const int min_preto[9]  = {700, 450, 600, 890, 500, 650, 670, 690, 670};
+const int min_preto[9]  = {770, 450, 690, 890, 600, 650, 670, 690, 600};
 int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -102,7 +103,11 @@ class motor {
     }
 
     void atualizar_pwm() {
-      pid->Compute();
+      if (v_real > 550) {
+        v_real = 0;
+        pwm = 255;
+      }
+      else pid->Compute();
       analogWrite(pino_pwm, pwm);
     }
     motor (int pfrente, int ptras, int encoder, int PWM) {
@@ -191,7 +196,7 @@ void intdt_encoder() {
 
 #define TESTE_OBSTACULO 0
 #define DESVIAR_PARA_ESQUERDA 1
-#define SEM_ULTRASSOM 0
+#define SEM_ULTRASSOM 1
 
 const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
 volatile long tempo_distancia;
@@ -379,73 +384,36 @@ void funcao_estado_principal() {
   andar_frente();
 #endif
 #if TESTE_OBSTACULO == 0
-  /*
-    if (cor[C2] == preto) {
-
-    if (cor[C1] == preto && cor[C3] == preto && movimento == andando_frente) {
-      if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto && cor[D2] == preto && cor[D3] == preto && cor[D4] == preto ) {
-        // VERDE DOS DOIS LADOS DETECTADO
-        angulo_restante = NOVENTA * 2;
-        virar_esquerda_acentuada();
-        estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-      }
-      else if (cor[E2] == preto && cor[E3] == preto && cor[E4] == preto) {
-        // VERDE NA ESQUERDA DETECTADO
-        angulo_restante = NOVENTA;
-        virar_esquerda_acentuada();
-        estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-      }
-      else if (cor[D2] == preto && cor[D3] == preto && cor[D4] == preto) {
-        // VERDE NA DIREITA DETECTADO
-        angulo_restante = NOVENTA;
-        virar_direita_acentuada();
-        estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
-      }
-    }
-
-    else if (cor [C1] == preto || cor [C3] == preto) andar_frente();
-    }
-    if (cor[C1] == branco) {
-    if (cor[E2] == preto) virar_esquerda_acentuada();
-    else if (cor[D2] == preto) virar_direita_acentuada();
-    else if (cor[EC2] == preto) virar_esquerda_media();
-    else if (cor[DC2] == preto) virar_direita_media();
-    if (cor[E2] == branco && cor[EC2] == branco && cor[C2] == branco && cor[DC2] == branco && cor[D2] == branco) {
-      if (cor[C3] == preto) {
-        if (cor[E3] == preto || cor[EC3] == preto) virar_esquerda_acentuada();
-        else if (cor[D3] == preto || cor[DC3] == preto) virar_direita_acentuada();
-      }
-    }
-    }
-    else if (cor[C3] == branco) {
-    if (cor[DC3] == preto && cor[C3] == branco) virar_esquerda_suave();
-    else if (cor[EC3] == preto && cor[C3] == branco) virar_direita_suave();
-    }*/
   //DECISAO
-  if (cor[C1] == preto && cor[C2] == preto && cor[C3] == preto && movimento == andando_frente) {
-    /*if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde) {
-      // VERDE DOS DOIS LADOS DETECTADO
-      angulo_restante = NOVENTA * 2;
-      virar_esquerda_acentuada();
-      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-    }
-    else if (cor_sensor_verde[E] == verde) {
-      // VERDE NA ESQUERDA DETECTADO
-      angulo_restante = NOVENTA;
-      virar_esquerda_acentuada();
-      estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
-    }
-    else if (cor_sensor_verde[D] == verde) {
-      // VERDE NA DIREITA DETECTADO
-      angulo_restante = NOVENTA;
-      virar_direita_acentuada();
-      estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
-    }*/
-  } else if (virando) {
+  if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde && cor[E2] == preto && cor[EC3] == preto && cor[D2] == preto && cor[DC3] == preto) {
+    // VERDE DOS DOIS LADOS DETECTADO
+    //tempo_restante = 200000;
+    //estado_atual = ESTADO_PAUSA_PROXIMO;
+    //proximo_estado = ESTADO_VERIFICA_VERDE;
+    angulo_restante = NOVENTA * 2;
+    estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+  }
+  else if (cor_sensor_verde[E] == verde && cor[E2] == preto && cor[EC3] == preto) {
+    // VERDE NA ESQUERDA DETECTADO
+    //tempo_restante = 200000;
+    //estado_atual = ESTADO_PAUSA_PROXIMO;
+    //proximo_estado = ESTADO_VERIFICA_VERDE;
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+  }
+  else if (cor_sensor_verde[D] == verde && cor[D2] == preto && cor[DC3] == preto) {
+    // VERDE NA DIREITA DETECTADO
+    //tempo_restante = 200000;
+    //estado_atual = ESTADO_PAUSA_PROXIMO;
+    //proximo_estado = ESTADO_VERIFICA_VERDE;
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
+  }
+  else if (virando) {
     if (cor[C1] == preto) {
-      quase = true;
-    } else if ((movimento == andando_direita && cor[EC2] == preto) ||
-               (movimento == andando_esquerda && cor[DC2] == preto)) {
+      quase = false;
+      virando = false;
+    } else if (cor[C2] == preto) {
       quase = false;
       virando = false;
       andar_frente();
@@ -453,22 +421,25 @@ void funcao_estado_principal() {
   }
   else if (cor[C2] == preto && cor[C1] == preto) andar_frente();
   else if (cor[C1] == branco && movimento == andando_frente) {
-    if (cor[E2] == preto) {
+    if (cor[E2] == preto && cor[D2] == preto) {
+      andar_frente();
+    }
+    else if (cor[E2] == preto && cor[EC3] == preto) {
       virar_esquerda_acentuada();
       virando = true;
     }
-    else if (cor[D2] == preto) {
+    else if (cor[D2] == preto && cor[DC3] == preto) {
       virar_direita_acentuada();
       virando = true;
     }
-    else if (cor[EC2] == preto) {
+    /*else if (cor[EC2] == preto) {
       virar_esquerda_acentuada();
       virando = true;
-    }
-    else if (cor[DC2] == preto) {
+      }
+      else if (cor[DC2] == preto) {
       virar_direita_acentuada();
       virando = true;
-    }
+      }*/
     else if (movimento == andando_frente && cor[C3] == branco) {
       //if (cor[DC3] == preto ) virar_esquerda_suave();
       //else if (cor[EC3] == preto) virar_direita_suave();
@@ -479,15 +450,19 @@ void funcao_estado_principal() {
 }
 
 void funcao_girando_horario_angulo() {
+  virar_direita_acentuada();
   girando();
   if (angulo_restante <= 0) {
+    andar_frente();
     estado_atual = ESTADO_PRINCIPAL;
   }
 }
 
 void funcao_girando_antihorario_angulo() {
+  virar_esquerda_acentuada();
   girando();
   if (angulo_restante <= 0) {
+    andar_frente();
     estado_atual = ESTADO_PRINCIPAL;
   }
 }
@@ -659,6 +634,29 @@ void funcao_pausa_proximo() {
   }
 }
 
+void funcao_verifica_verde(){
+  estado_atual = ESTADO_PARADO;
+  return;
+  if (cor_sensor_verde[E] == verde && cor_sensor_verde[D] == verde && cor[E2] == preto && cor[EC3] == preto && cor[D2] == preto && cor[DC3] == preto) {
+    // VERDE DOS DOIS LADOS DETECTADO
+    angulo_restante = NOVENTA * 2;
+    estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+  }
+  else if (cor_sensor_verde[E] == verde && cor[E2] == preto && cor[EC3] == preto) {
+    // VERDE NA ESQUERDA DETECTADO
+    angulo_restante = NOVENTA;
+    estado_atual = ESTADO_GIRANDO_ANTIHORARIO_ANGULO;
+  }
+  else if (cor_sensor_verde[D] == verde && cor[D2] == preto && cor[DC3] == preto) {
+    // VERDE NA DIREITA DETECTADO
+    angulo_restante = NOVENTA ;
+    estado_atual = ESTADO_GIRANDO_HORARIO_ANGULO;
+  } else {
+    andar_frente();
+    estado_atual = ESTADO_PRINCIPAL;
+  }
+}
+
 void (*funcoes[])() = {
   funcao_estado_principal,
   funcao_girando_horario_angulo,
@@ -676,7 +674,8 @@ void (*funcoes[])() = {
   funcao_obstaculo_passo_6,
   funcao_obstaculo_passo_7,
   funcao_obstaculo_passo_0,
-  funcao_pausa_proximo
+  funcao_pausa_proximo,
+  funcao_verifica_verde
 };
 
 void setup() {
@@ -870,7 +869,7 @@ void loop() {
   */
 
 
-  if (millis() % 250 <= 1 && debug) {
+  if (millis() % 100 <= 1 && debug){// && (cor_sensor_verde[E] == verde || cor_sensor_verde[D] == verde)) {
     noInterrupts();
     /*Serial.println(motor_ef.v_real);
       Serial.println(motor_df.v_real);
@@ -949,6 +948,8 @@ void loop() {
     Serial.print(" ");
     Serial.println(motor_dt.sent);
 
+    Serial.println(estado_atual);
+
     Serial.println(cont);
     Serial.println(" ");
 #endif
@@ -1003,7 +1004,7 @@ void atualizar_sensores_cor() {
   leitura_vermelho[E] = pulseIn(sensores_verde[EVS], digitalRead(sensores_verde[EVS]) == HIGH ? LOW : HIGH, TIMEOUT);
   leitura_vermelho[D] = pulseIn(sensores_verde[DVS], digitalRead(sensores_verde[DVS]) == HIGH ? LOW : HIGH, TIMEOUT);
   for (int i = 0; i < 2; i++) {
-    if (leitura_verde[i] < max_verde_G[i] && leitura_verde[i] > min_verde_G[i] && leitura_vermelho[i] > min_verde_R[i]) cor_sensor_verde[i] = verde;
+    if (leitura_verde[i] < max_verde_G[i] && leitura_verde[i] > min_verde_G[i] && leitura_vermelho[i] > min_verde_R[i] && leitura_vermelho[i] < max_verde_R[i]) cor_sensor_verde[i] = verde;
     else cor_sensor_verde[i] = branco;
   }
 
