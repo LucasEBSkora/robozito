@@ -45,7 +45,7 @@ enum Estado {
 #define E 0
 #define D 1
 //                             EVC EVS   DVC  DVS
-const int sensores_verde[4] = {A14, A15, A3, A4};
+const int sensores_verde[4] = {A14, A15, A4, A3};
 //                              E    D
 const uint8_t min_verde_R[2] = {80 , 80};
 const uint8_t min_verde_G[2] = {20 , 20};
@@ -56,7 +56,7 @@ uint8_t cor_sensor_verde[2];
 uint8_t indice_mudanca[2];
 //                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
 const int sensor[9]     = {A13, A12, A11, A10, A9,  A8,  A7,  A6,  A5 };
-const int min_preto[9]  = {770, 450, 690, 890, 600, 650, 670, 690, 600};
+const int min_preto[9]  = {770, 650, 690, 830, 620, 650, 700, 690, 750};
 int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -147,10 +147,10 @@ class motor {
 };
 
 
-#define MOTOR_F_IN4 50 // IN4 - MOTOR esquerdo - frente = LOW
-#define MOTOR_F_IN3 52  // IN3 - MOTOR esquerdo - frente = HIGH
-#define MOTOR_F_IN2 46 // IN2 - MOTOR Direito           LOW
-#define MOTOR_F_IN1 48  // IN1 - MOTOR direito - frente HIGH
+#define MOTOR_F_IN4 13 // IN4 - MOTOR esquerdo - frente = LOW
+#define MOTOR_F_IN3 12  // IN3 - MOTOR esquerdo - frente = HIGH
+#define MOTOR_F_IN2 11 // IN2 - MOTOR Direito           LOW
+#define MOTOR_F_IN1 10  // IN1 - MOTOR direito - frente HIGH
 #define MOTOR_T_IN4 44
 #define MOTOR_T_IN3 42
 #define MOTOR_T_IN2 40
@@ -161,8 +161,8 @@ class motor {
 #define PINO_T_INT0 18 // pinos onde estão ligados os 
 #define PINO_T_INT1 19 // comparadores dos encoders
 
-#define PWM_F1 11   //pino ENB do driver ponte H (MOTOR DIREITO)
-#define PWM_F2 10    //pino ENA (MOTOR ESQUERDO)
+#define PWM_F1 9   //pino ENB do driver ponte H (MOTOR DIREITO)
+#define PWM_F2 8    //pino ENA (MOTOR ESQUERDO)
 #define PWM_T1 4    // DIREITO
 #define PWM_T2 5     // ESQUERDO
 
@@ -204,25 +204,6 @@ volatile long tempo_distancia;
 volatile float distancia_mm = 200;
 volatile int contando = 0;
 
-//void int_inicio_contagem() {
-//  //  if (contando){
-//  tempo_distancia = micros();
-//  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
-//  attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_fim_contagem, FALLING);
-//  //  }
-//  //  contando = 1;
-//}
-//
-//void int_fim_contagem() {
-//  //  if (contando){
-//  tempo_distancia = micros() - tempo_distancia;
-//  distancia_mm = tempo_distancia * CONVERSAO_P_MILIMETROS;
-//  detachInterrupt(digitalPinToInterrupt(ECHO_PIN));
-//  //    attachInterrupt(digitalPinToInterrupt(ECHO_PIN), int_inicio_contagem, RISING);
-//  contando = 0;
-//  //  }
-//}
-
 void int_mudanca_ultrassom() {
   if (digitalRead(ECHO_PIN) == HIGH) {
     contando = 1;
@@ -237,7 +218,6 @@ void int_mudanca_ultrassom() {
 byte movimento;
 
 void configurar_sensores_cor();
-#define media acentuada
 void andar_frente() {
   motor_ef.v_desejada = v_reto;
   motor_df.v_desejada = v_reto;
@@ -271,31 +251,6 @@ void virar_esquerda_suave() {
   motor_df.sentido(frente);
   motor_et.sentido(frente);
   motor_dt.sentido(frente);
-  movimento = andando_esquerda;
-}
-
-void virar_direita_media() {
-  motor_ef.v_desejada = v_curva;
-  motor_df.v_desejada = v_curva;
-  motor_et.v_desejada = v_curva;
-  motor_dt.v_desejada = v_curva;
-  motor_ef.sentido(frente);
-  motor_df.sentido(desligado);
-  motor_et.sentido(desligado);
-  motor_dt.sentido(frente);
-  movimento = andando_direita;
-
-}
-
-void virar_esquerda_media() {
-  motor_ef.v_desejada = v_curva;
-  motor_df.v_desejada = v_curva;
-  motor_et.v_desejada = v_curva;
-  motor_dt.v_desejada = v_curva;
-  motor_ef.sentido(desligado);
-  motor_df.sentido(frente);
-  motor_et.sentido(frente);
-  motor_dt.sentido(desligado);
   movimento = andando_esquerda;
 }
 
@@ -360,10 +315,6 @@ void andando() {
     distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
   }
   tempo_atual = micros();
-  //  motor_ef.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  //  motor_df.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  //  motor_et.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
-  //  motor_dt.v_desejada = (distancia_restante / distancia_desejada) * v_desejada_final;
 }
 
 bool virando = false;
@@ -379,8 +330,6 @@ void funcao_estado_principal() {
     // DESVIAR
     tempo_restante = 350000;
     estado_atual = ESTADO_OBSTACULO_PASSO_0;
-    //    angulo_restante = NOVENTA;
-    //    estado_atual = ESTADO_OBSTACULO_PASSO_1;
   }
 #endif
 #if TESTE_OBSTACULO == 1
@@ -487,8 +436,14 @@ void funcao_estado_principal() {
         virando = true;
         }*/
       else if (movimento == andando_frente && cor[C3] == branco) {
-        //if (cor[DC3] == preto ) virar_esquerda_suave();
-        //else if (cor[EC3] == preto) virar_direita_suave();
+        if (cor[DC3] == preto ) {
+          virar_esquerda_suave();
+          virando = true;
+        }
+        else if (cor[EC3] == preto) {
+          virar_direita_suave();
+          virando = true;
+        }
       }
     }
   }
@@ -842,6 +797,15 @@ void imprime_tudo() {
   Serial.print(motor_et.sent);
   Serial.print(" ");
   Serial.println(motor_dt.sent);
+
+  Serial.print(motor_ef.v_real);
+  Serial.print(" ");
+  Serial.println(motor_df.v_real);
+
+
+  Serial.print(motor_et.v_real);
+  Serial.print(" ");
+  Serial.println(motor_dt.v_real);
 
   Serial.println(estado_atual);
 
