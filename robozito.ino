@@ -56,7 +56,7 @@ uint8_t cor_sensor_verde[2];
 uint8_t indice_mudanca[2];
 //                          E2  EC2  EC3  C1   C2   C3   DC2  DC3  D2
 const int sensor[9]     = {A13, A12, A11, A10, A9,  A8,  A7,  A6,  A5 };
-const int min_preto[9]  = {770, 650, 690, 830, 620, 650, 700, 690, 750};
+const int min_preto[9]  = {770, 650, 690, 870, 620, 650, 700, 690, 750};
 int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 //dessas variáveis a única que deve ser lida é cor[]
 
@@ -64,7 +64,7 @@ int cor[9], medicao[9], nova_cor[13], indice_mudar[13];
 #define Ki 0.05
 #define Kd 0.03
 
-#define NOVENTA ( 3.1415926535 * 0.35 )
+#define NOVENTA ( 3.1415926535 * 0.51 )
 
 #define v_min 150
 #define v_max 255
@@ -197,7 +197,7 @@ void intdt_encoder() {
 
 #define TESTE_OBSTACULO 0
 #define DESVIAR_PARA_ESQUERDA 0
-#define SEM_ULTRASSOM 0
+#define SEM_ULTRASSOM 1
 
 const float CONVERSAO_P_MILIMETROS = 0.1715; // = 343/2000 milimetos por microsegundo
 volatile long tempo_distancia;
@@ -359,7 +359,7 @@ void funcao_estado_principal() {
       } else {
       distancia_restante -= ((motor_df.v_real + motor_ef.v_real) / 2) * (micros() - tempo_atual) / 1000000;
       tempo_atual = micros();
-      if (distancia_restante <= 0) {*/
+      if (distancia_restante <= 0) {*//*
     if (!vendo_verde) {
       verdes_restantes = 15;
       vendo_verde = true;
@@ -370,7 +370,7 @@ void funcao_estado_principal() {
         if (debug_verde) imprime_tudo();
       }
     }
-    /*vendo_verde = false;
+    *//*vendo_verde = false;
       }
       }*/
   }
@@ -436,14 +436,14 @@ void funcao_estado_principal() {
         virando = true;
         }*/
       else if (movimento == andando_frente && cor[C3] == branco) {
-        if (cor[DC3] == preto ) {
+        /*if (cor[DC3] == preto ) {
           virar_esquerda_suave();
           virando = true;
         }
         else if (cor[EC3] == preto) {
           virar_direita_suave();
           virando = true;
-        }
+        }*/
       }
     }
   }
@@ -515,7 +515,7 @@ void funcao_obstaculo_passo_1() {
 #endif
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 85; //milímetros
+    distancia_restante = 110; //milímetros
     //    estado_atual = ESTADO_OBSTACULO_PASSO_2;
     tempo_restante = PAUSA;
     proximo_estado = ESTADO_OBSTACULO_PASSO_2;
@@ -543,7 +543,7 @@ void funcao_obstaculo_passo_3() {
 #endif
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 150; //milímetros
+    distancia_restante = 220; //milímetros
     //    estado_atual = ESTADO_OBSTACULO_PASSO_4;
     tempo_restante = PAUSA;
     proximo_estado = ESTADO_OBSTACULO_PASSO_4;
@@ -571,7 +571,7 @@ void funcao_obstaculo_passo_5() {
 #endif
   girando();
   if (angulo_restante <= 0) {
-    distancia_restante = 85; //milímetros
+    distancia_restante = 110; //milímetros
     //    estado_atual = ESTADO_OBSTACULO_PASSO_6;
     tempo_restante = PAUSA;
     proximo_estado = ESTADO_OBSTACULO_PASSO_6;
